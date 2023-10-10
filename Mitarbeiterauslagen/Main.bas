@@ -1,3 +1,5 @@
+' 2023-10-10 little code history ...
+
 Option Explicit
 
 Public Const EXP_ROW_TIMERANGE As Long = 1

@@ -68,7 +68,7 @@ Public Sub CreateBalance() '2023-10-08 rAiner Gruber
         Call UpdateStatus("OK - " & lTimeRange & " cleared", True)
     Else
 '        Call MsgBox("Abrechnung f? lTimeRange & " nicht m?ch - Saldo ist bereits 0.00?. Wurde vielleicht bereits abgerechnet?", vbExclamation, "Abrechnung")
-        Call UpdateStatus("Abrechnung fuer " & lTimeRange & " nicht moeglich - Saldo ist bereits 0.00 EUR. Wurde vielleicht bereits abgerechnet?", False)
+'        Call UpdateStatus("Abrechnung fuer " & lTimeRange & " nicht moeglich - Saldo ist bereits 0.00 EUR. Wurde vielleicht bereits abgerechnet?", False)
         Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False)
     End If
 End Sub

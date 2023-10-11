@@ -12,40 +12,38 @@ Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vau
 'Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas"
 Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/"
 
-Public Sub UpdateCode()
-    'https://drive.google.com/file/d/1J8bdRrYpTWF-G1KwxkrqQykNETR8BJ1a/view?usp=sharing
-    Const MODULE_NAME As String = "Main"
-'    Const CODE_FILE As String = "c:\temp\Mitarbeiterauslagen.txt"
-'    Debug.Print ImportModuleFromFile(CODE_FILE)
-    
-    Dim lCode As String
-    Dim lResult As String
-'    lResult = ReadGoogleDrive("1J8bdRrYpTWF-G1KwxkrqQykNETR8BJ1a", lCode)
-    lResult = ReadGitHubRaw("https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas", lCode)
-    If LenB(lResult) = 0 Then
-        If LenB(lCode) > 0 Then
-            lResult = UpdateModule(MODULE_NAME, lCode)
-            If LenB(lResult) = 0 Then
-                Debug.Print "Module successfully updated"
-            Else
-                Debug.Print "UpdateModule did not work: " & lResult
-            End If
-        Else
-            Debug.Print "ReadGoogleDrive worked, but no code in module"
-        End If
-    Else
-        Debug.Print "ReadGoogleDrive did not work: " & lResult
-    End If
-End Sub
+'Public Sub UpdateCode()
+'    'https://drive.google.com/file/d/1J8bdRrYpTWF-G1KwxkrqQykNETR8BJ1a/view?usp=sharing
+'    Const MODULE_NAME As String = "Main"
+''    Const CODE_FILE As String = "c:\temp\Mitarbeiterauslagen.txt"
+''    Debug.Print ImportModuleFromFile(CODE_FILE)
+'
+'    Dim lCode As String
+'    Dim lResult As String
+''    lResult = ReadGoogleDrive("1J8bdRrYpTWF-G1KwxkrqQykNETR8BJ1a", lCode)
+'    lResult = ReadGitHubRaw("https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas", lCode)
+'    If LenB(lResult) = 0 Then
+'        If LenB(lCode) > 0 Then
+'            lResult = UpdateModule(MODULE_NAME, lCode)
+'            If LenB(lResult) = 0 Then
+'                Debug.Print "Module successfully updated"
+'            Else
+'                Debug.Print "UpdateModule did not work: " & lResult
+'            End If
+'        Else
+'            Debug.Print "ReadGoogleDrive worked, but no code in module"
+'        End If
+'    Else
+'        Debug.Print "ReadGoogleDrive did not work: " & lResult
+'    End If
+'End Sub
 
 Public Sub ExportAll()
     Dim lComponent As VBComponent
-'    Dim lExtension As String
     Dim lFso As New FileSystemObject
     Dim lStream As TextStream
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
-'            lExtension = IIf(lComponent.Type = vbext_ct_StdModule, ".bas", ".cls")
             Set lStream = lFso.CreateTextFile(LOCAL_REPO_BASE_PATH & GetWorkbookName & "\" & GetFileName(lComponent))
             Call lStream.WriteLine(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
             Call lStream.Close
@@ -54,10 +52,28 @@ Public Sub ExportAll()
     Next lComponent
 End Sub
 
-Public Sub UpdateModules()
+Public Sub UpdateAll()
     Dim lComponent As VBComponent
-'    Dim lExtension As String
+    Dim lResult As String
+    Dim lCode As String
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
+        If lComponent.Name <> "Loader" Then
+            lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lCode)
+            If LenB(lResult) = 0 Then
+                If LenB(lCode) > 0 Then
+                    lResult = UpdateModule(lComponent.Name, lCode)
+                    If LenB(lResult) = 0 Then
+                        Debug.Print "Module successfully updated"
+                    Else
+                        Debug.Print "UpdateModule did not work: " & lResult
+                    End If
+                Else
+                    Debug.Print "ReadGoogleDrive worked, but no code in module"
+                End If
+            Else
+                Debug.Print "ReadGoogleDrive did not work: " & lResult
+            End If
+        End If
     Next lComponent
 End Sub
 

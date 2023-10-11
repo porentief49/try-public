@@ -7,7 +7,10 @@ Option Explicit
 ' for instance already works: https://raw.githubusercontent.com/porentief49/try-public/main/README.md
 '-------------------------------------------------------------------------------------------------------------------
 
-Private Const LOCAL_REPO_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\Mitarbeiterauslagen\"
+
+Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
+'Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas"
+Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/"
 
 Public Sub UpdateCode()
     'https://drive.google.com/file/d/1J8bdRrYpTWF-G1KwxkrqQykNETR8BJ1a/view?usp=sharing
@@ -36,49 +39,36 @@ Public Sub UpdateCode()
 End Sub
 
 Public Sub ExportAll()
-
-''    Const CODE_MODULE As String = "Main"
-''    Call ExportModule(CODE_MODULE)
-'
-'        Dim lProject As VBProject
     Dim lComponent As VBComponent
-''    Dim lModule As CodeModule
-'''    Dim lFile As String
-'''    Dim lLines As String
-'''    Dim lModuleName As String
-''    On Error GoTo hell
-'''    lModuleName = Split(lFso.GetFileName(aFile), ".")(0)
-'    Set lProject = ThisWorkbook.VBProject
-''    Set lComponent = lProject.VBComponents(aModuleName)
-''    Set lModule = lComponent.CodeModule
-'
-'    Dim lComponent As CodeModule
-    Dim lExtension As String
+'    Dim lExtension As String
     Dim lFso As New FileSystemObject
     Dim lStream As TextStream
-
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
-'        Debug.Print lComponent.Type, lComponent.Name
-'        lExtension = vbNullString
-'        Select Case lComponent.Type
-'        Case 1
-'            lExtension = ".bas"
-'        Case 2
-'            lExtension = ".cls"
-''        Case Else
-''            Exit For
-'        End Select
         If lComponent.Type < 2 Then
-            lExtension = IIf(lComponent.Type = vbext_ct_StdModule, ".bas", ".cls")
-            Set lStream = lFso.CreateTextFile(LOCAL_REPO_PATH & lComponent.Name & lExtension)
+'            lExtension = IIf(lComponent.Type = vbext_ct_StdModule, ".bas", ".cls")
+            Set lStream = lFso.CreateTextFile(LOCAL_REPO_BASE_PATH & GetWorkbookName & "\" & GetFileName(lComponent))
             Call lStream.WriteLine(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
             Call lStream.Close
             Set lStream = Nothing
-    '        Call ExportCode
         End If
     Next lComponent
-'
 End Sub
+
+Public Sub UpdateModules()
+    Dim lComponent As VBComponent
+'    Dim lExtension As String
+    For Each lComponent In ThisWorkbook.VBProject.VBComponents
+    Next lComponent
+End Sub
+
+Private Function GetFileName(aComponent As VBComponent) As String
+    GetFileName = aComponent.Name & IIf(aComponent.Type = vbext_ct_StdModule, ".bas", ".cls")
+End Function
+
+Private Function GetWorkbookName() As String
+    GetWorkbookName = Split(ActiveWorkbook.Name, ".")(0)
+End Function
+
 
 
 'Sub ListModulesAndClasses()

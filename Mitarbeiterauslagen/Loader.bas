@@ -11,7 +11,7 @@ Public Sub ExportAll()
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
             Set lStream = lFso.CreateTextFile(LOCAL_REPO_BASE_PATH & GetWorkbookName & "\" & GetFileName(lComponent))
-            Call lStream.WriteLine(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+            Call lStream.Write(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
             Call lStream.Close
             Set lStream = Nothing
         End If
@@ -112,4 +112,3 @@ hell:
 '    Set lStream = Nothing
     UpdateModule = "Error: " & Err.Description
 End Function
-

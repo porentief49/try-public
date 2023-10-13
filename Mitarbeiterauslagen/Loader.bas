@@ -1,3 +1,5 @@
+' 2023-10-13 initial creation
+
 Option Explicit
 
 Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
@@ -31,7 +33,7 @@ Public Sub UpdateAll()
                         lResult = UpdateModule(lComponent.Name, lCode)
                         If LenB(lResult) = 0 Then
                             Debug.Print "Module '" & lComponent.Name; "' successfully updated"
-                            Debug.Print "    Rev Date: " & GetRevDate(lComponent)
+                            Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         Else
                             Debug.Print "UpdateModule did not work: " & lResult
                         End If
@@ -54,18 +56,20 @@ Private Function GetWorkbookName() As String
     GetWorkbookName = Split(ActiveWorkbook.Name, ".")(0)
 End Function
 
-Private Function GetRevDate(aComponent As VBComponent) As String
+Private Function GetRevDate(aCodeAllLines As String) As String
     Dim i As Long
     Dim lLine As String
-    Dim lModule As CodeModule
+'    Dim lModule As CodeModule
+    Dim lLines() As String
     Dim lDateMaybe As String
     Dim lLatestDate As String
     Dim lDone
-    Set lModule = aComponent.CodeModule
+'    Set lModule = aComponent.CodeModule
     i = 1
     lDone = False
+    lLines = Split(aCodeAllLines, vbCrLf)
     Do
-        lLine = Trim$(lModule.Lines(i, 1))
+        lLine = Trim$(lLines(i, 1))
         If Left$(lLine, 1) = "'" Then
             lDateMaybe = Split(Trim$(Mid$(lLine, 2, 999)), " ")(0)
             If Len(lDateMaybe) = 10 Then
@@ -82,7 +86,6 @@ Private Function GetRevDate(aComponent As VBComponent) As String
         End If
         i = i + 1
     Loop Until lDone
-    GetRevDate = lLatestDate
 End Function
 
 Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As String) As String

@@ -82,6 +82,7 @@ Private Function GetRevDate(aComponent As VBComponent) As String
         End If
         i = i + 1
     Loop Until lDone
+    GetRevDate = lLatestDate
 End Function
 
 Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As String) As String
@@ -153,5 +154,6 @@ hell:
 '    Set lStream = Nothing
     UpdateModule = "Error: " & Err.Description
 End Function
+
 
 

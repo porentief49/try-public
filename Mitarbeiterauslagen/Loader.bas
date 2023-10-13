@@ -11,7 +11,7 @@ Public Sub ExportAll()
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
             Set lStream = lFso.CreateTextFile(LOCAL_REPO_BASE_PATH & GetWorkbookName & "\" & GetFileName(lComponent))
-            Call lStream.Write(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+            Call lStream.WriteLine(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
             Call lStream.Close
             Set lStream = Nothing
         End If
@@ -31,6 +31,7 @@ Public Sub UpdateAll()
                         lResult = UpdateModule(lComponent.Name, lCode)
                         If LenB(lResult) = 0 Then
                             Debug.Print "Module '" & lComponent.Name; "' successfully updated"
+                            Debug.Print "    Rev Date: " & GetRevDate(lComponent)
                         Else
                             Debug.Print "UpdateModule did not work: " & lResult
                         End If
@@ -51,6 +52,46 @@ End Function
 
 Private Function GetWorkbookName() As String
     GetWorkbookName = Split(ActiveWorkbook.Name, ".")(0)
+End Function
+
+Private Function GetRevDate(aComponent As VBComponent) As String
+    Dim i As Long
+    Dim lLine As String
+    Dim lModule As CodeModule
+    Dim lDateMaybe As String
+    Dim lLatestDate As String
+    Dim lDone
+    Set lModule = aComponent.CodeModule
+    i = 1
+    lDone = False
+    Do
+        lLine = Trim$(lModule.Lines(i, 1))
+        If Left$(lLine, 1) = "'" Then
+            lDateMaybe = Split(Trim$(Mid$(lLine, 2, 999)), " ")(0)
+            If Len(lDateMaybe) = 10 Then
+                If LenB(ReplaceAny(lDateMaybe, "0123456789-", vbNullString)) = 0 Then
+                    If lDateMaybe > lLatestDate Then lLatestDate = lDateMaybe
+                Else
+                    'error format!!!
+                End If
+            Else
+                'error format!!!
+            End If
+        Else
+            lDone = True
+        End If
+        i = i + 1
+    Loop Until lDone
+End Function
+
+Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As String) As String
+    Dim lResult As String
+    Dim i As Long
+    lResult = aIn
+    For i = 1 To Len(aReplaceChars)
+        lResult = Replace$(lResult, Mid$(aReplaceChars, i, 1), aWith)
+    Next i
+    ReplaceAny = lResult
 End Function
 
 
@@ -112,3 +153,5 @@ hell:
 '    Set lStream = Nothing
     UpdateModule = "Error: " & Err.Description
 End Function
+
+

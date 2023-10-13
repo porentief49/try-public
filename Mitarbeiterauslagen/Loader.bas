@@ -26,7 +26,7 @@ Public Sub UpdateAll()
     Dim lCode As String
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
-            ' If lComponent.Name <> "Loader" Then
+'            If lComponent.Name <> "Loader" Then
                 lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lCode)
                 If LenB(lResult) = 0 Then
                     If LenB(lCode) > 0 Then
@@ -43,7 +43,7 @@ Public Sub UpdateAll()
                 Else
                     Debug.Print "ReadGoogleDrive did not work: " & lResult
                 End If
-            ' End If
+'            End If
         End If
     Next lComponent
 End Sub
@@ -86,6 +86,7 @@ Private Function GetRevDate(aCodeAllLines As String) As String
         End If
         i = i + 1
     Loop Until lDone Or i > UBound(lLines)
+    GetRevDate = lLatestDate
 End Function
 
 Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As String) As String

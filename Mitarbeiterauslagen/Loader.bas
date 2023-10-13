@@ -65,11 +65,11 @@ Private Function GetRevDate(aCodeAllLines As String) As String
     Dim lLatestDate As String
     Dim lDone
 '    Set lModule = aComponent.CodeModule
-    i = 1
+    i = 0
     lDone = False
-    lLines = Split(aCodeAllLines, vbCrLf)
+    lLines = Split(Replace$(aCodeAllLines, vbCr, vbNullString), vbLf)
     Do
-        lLine = Trim$(lLines(i, 1))
+        lLine = Trim$(lLines(i))
         If Left$(lLine, 1) = "'" Then
             lDateMaybe = Split(Trim$(Mid$(lLine, 2, 999)), " ")(0)
             If Len(lDateMaybe) = 10 Then
@@ -85,7 +85,7 @@ Private Function GetRevDate(aCodeAllLines As String) As String
             lDone = True
         End If
         i = i + 1
-    Loop Until lDone
+    Loop Until lDone Or i > UBound(lLines)
 End Function
 
 Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As String) As String
@@ -157,6 +157,7 @@ hell:
 '    Set lStream = Nothing
     UpdateModule = "Error: " & Err.Description
 End Function
+
 
 
 

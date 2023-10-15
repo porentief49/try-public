@@ -5,8 +5,7 @@ Option Explicit
 Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
 
 Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
-'Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas"
-Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/"
+Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/" ' full path like: https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas
 
 Public Enum eDoWeUpdate
     WhatDoIKnow = 0
@@ -86,12 +85,10 @@ End Function
 Private Function GetRevDate(aCodeAllLines As String) As String
     Dim i As Long
     Dim lLine As String
-'    Dim lModule As CodeModule
     Dim lLines() As String
     Dim lDateMaybe As String
     Dim lLatestDate As String
     Dim lDone
-'    Set lModule = aComponent.CodeModule
     i = 0
     lDone = False
     lLines = Split(Replace$(aCodeAllLines, vbCr, vbNullString), vbLf)
@@ -126,29 +123,17 @@ Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As Str
     ReplaceAny = lResult
 End Function
 
-
 Private Function ReadGitHubRaw(aUrl As String, ByRef aCode As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
-    
-    ' this is the link format needed: https://drive.google.com/uc?id=YOUR_FILE_ID"
-    ' when you share in google drive, you will get this link: https://drive.google.com/file/d/18D2GscIRnO286zlWqNTSL06jcMgtTeon/view?usp=sharing
-    ' now grab the doc ID and put it into the link above: https://drive.google.com/uc?id=18D2GscIRnO286zlWqNTSL06jcMgtTeon
-'    Dim fileURL As String
     Dim xmlHttp As Object
     On Error GoTo hell
-'    fileURL = "https://drive.google.com/uc?id=" & aFileId
     Set xmlHttp = CreateObject("MSXML2.ServerXMLHTTP")
     Call xmlHttp.Open("GET", aUrl, False)  ' Send a GET request to the Google Drive file
     Call xmlHttp.send
     If xmlHttp.Status = 200 Then ' Check if the request was successful
         aCode = xmlHttp.responseText ' Read the response text (contents of the file)
-'        MsgBox fileContents ' Display the file contents (you can modify this part as needed)
-'        Open "c:\temp\download.txt" For Output As #1
-'        Print #1, fileContents
-'        Close #1
         ReadGitHubRaw = vbNullString
     Else
-        ' Handle errors (e.g., file not found)
-        ReadGitHubRaw = "HTTP Error: " & xmlHttp.Status & " - " & xmlHttp.statusText
+        ReadGitHubRaw = "HTTP Error: " & xmlHttp.Status & " - " & xmlHttp.statusText ' Handle errors (e.g., file not found)
     End If
     Set xmlHttp = Nothing ' Clean up
     Exit Function
@@ -157,36 +142,19 @@ hell:
     ReadGitHubRaw = "Error: " & Err.Description
 End Function
 
-
 Private Function UpdateModule(aComponent As VBComponent, aCode As String) As String
-'    Dim lFso As New FileSystemObject
-'    Dim lStream As TextStream
-'    Dim lProject As VBProject
-'    Dim lComponent As VBComponent
-    Dim lModule As CodeModule
-'    Dim lFile As String
-'    Dim lLines As String
-'    Dim lModuleName As String
     On Error GoTo hell
-'    lModuleName = Split(lFso.GetFileName(aFile), ".")(0)
-'    Set lProject = ThisWorkbook.VBProject
-'    Set lComponent = lProject.VBComponents(aModuleName)
-    Set lModule = aComponent.CodeModule
-'    lFile = "C:\temp\" & lModuleName & ".txt"
-'    Set lStream = lFso.OpenTextFile(aFile)
-'    lLines = lStream.ReadAll
-'    Call lStream.Close
-'    Set lStream = Nothing
-    Call lModule.DeleteLines(1, lModule.CountOfLines)
-    Call lModule.InsertLines(1, aCode)
+    With aComponent.CodeModule
+        Call .DeleteLines(1, .CountOfLines)
+        Call .InsertLines(1, aCode)
+    End With
     UpdateModule = vbNullString
     Exit Function
 hell:
-'    Set lStream = Nothing
     UpdateModule = "Error: " & Err.Description
 End Function
 
-Function IsShiftKeyPressed() As Boolean 'credit: https://chat.openai.com/share/2c52b886-2200-41a9-93b1-40503edf8baa
+Private Function IsShiftKeyPressed() As Boolean 'credit: https://chat.openai.com/share/2c52b886-2200-41a9-93b1-40503edf8baa
     IsShiftKeyPressed = (GetAsyncKeyState(16) And &H8000) <> 0
 End Function
 

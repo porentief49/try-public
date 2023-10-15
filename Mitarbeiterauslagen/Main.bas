@@ -58,15 +58,18 @@ Public Sub ClearMonth()
     Dim lTimeRange As String
     Dim lRow As Long
     Dim lExpensesSheet As Worksheet
-    Call SortEntries
+    Set lExpensesSheet = Sheets(SHEET_EXPENSES)
     lBalance = lExpensesSheet.Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
-    lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) > 0.004 Then
+        Application.ScreenUpdating = False
+        lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
+        Call SortEntries(lExpensesSheet)
         lRow = FindFreeRow(lExpensesSheet)
         lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False)
         lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = BALANCE_TITLE & lTimeRange
         lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
         Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
+        Application.ScreenUpdating = True
     Else
         Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False, lExpensesSheet)
     End If
@@ -165,13 +168,11 @@ Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As Worksheet)
     Const IMAGE_HEIGHT_CORRECTION As Double = 1.118 ' weird - Excel will display squares a little taller than they should be
     Const IMAGE_COL_MARGIN As Double = 5
     Const IMAGE_NAME As String = "QrCode"
-'    Dim ws As Worksheet
     Dim pic As Picture
     Dim shp As Shape
     Dim lHeight As Double
     Dim lWidth As Double
     Dim lLeft As Double
-'    Set ws = ThisWorkbook.Sheets(aSheet)
     
     'delete old QR code
     For Each shp In aSheet.Shapes
@@ -184,8 +185,6 @@ Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As Worksheet)
     'load & place new QR code
     Set pic = aSheet.Pictures.Insert(aFile)
     pic.Name = IMAGE_NAME
-'    aSheet.Shapes.Range(Array(IMAGE_NAME)).Select
-'    Selection.ShapeRange.LockAspectRatio = msoFalse
     aSheet.Shapes.Range(Array(IMAGE_NAME)).LockAspectRatio = msoFalse
     lHeight = aSheet.Cells(8, BAL_COL_DATA).Top - aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Top
     lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
@@ -227,25 +226,19 @@ End Sub
 '    Debug.Print "QR code generated and saved as " & outputPath
 'End Sub
 
-Private Sub SortEntries()
-    Dim lSelectCache As Range
+Private Sub SortEntries(aSheet As Worksheet)
     Dim lColLetter As String
     lColLetter = ConvertColToLetter(COL_DATE)
-    Application.ScreenUpdating = False
-    Set lSelectCache = Selection
-    Call Rows(CStr(EXP_ROW_DATA_FIRST) & ":" & CStr(EXP_ROW_DATA_LAST)).Select
-    With ActiveWorkbook.ActiveSheet.Sort
+    With aSheet.Sort
         Call .SortFields.Clear
-        Call .SortFields.Add2(Key:=Range(lColLetter & CStr(EXP_ROW_DATA_FIRST) & ":" & lColLetter & CStr(EXP_ROW_DATA_LAST)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal)
-        Call .SetRange(Range(CStr(EXP_ROW_DATA_FIRST) & ":" & CStr(EXP_ROW_DATA_LAST)))
+        Call .SortFields.Add2(Key:=aSheet.Range(lColLetter & CStr(EXP_ROW_DATA_FIRST) & ":" & lColLetter & CStr(EXP_ROW_DATA_LAST)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal)
+        Call .SetRange(aSheet.Range(CStr(EXP_ROW_DATA_FIRST) & ":" & CStr(EXP_ROW_DATA_LAST)))
         .Header = xlNo
         .MatchCase = False
         .Orientation = xlTopToBottom
         .SortMethod = xlPinYin
         Call .Apply
     End With
-    Call lSelectCache.Select
-    Application.ScreenUpdating = True
 End Sub
 
 Private Sub CopyExpenses()

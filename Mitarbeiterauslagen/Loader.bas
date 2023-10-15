@@ -8,6 +8,12 @@ Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vau
 'Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas"
 Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/"
 
+Public Enum eDoWeUpdate
+    WhatDoIKnow = 0
+    YeahGoForIt = 1
+    NahWhatIHaveIsGood = 0
+End Enum
+
 Public Sub ExportAll()
     Dim lComponent As VBComponent
     Dim lFso As New FileSystemObject
@@ -28,6 +34,8 @@ Public Sub UpdateAll()
     Dim lGitHubCode As String
     Dim lThisRevDate As String
     Dim lGitHubRevDate As String
+    Dim lDoWeUpdate As eDoWeUpdate
+    lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
 '            If lComponent.Name <> "Loader" Then
@@ -37,12 +45,21 @@ Public Sub UpdateAll()
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         lGitHubRevDate = GetRevDate(lGitHubCode)
                         If lGitHubRevDate > lThisRevDate Then
-                            lResult = UpdateModule(lComponent.Name, lGitHubCode)
-                            If LenB(lResult) = 0 Then
-                                Debug.Print "Module '" & lComponent.Name; "' successfully updated"
-                                Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
-                            Else
-                                Debug.Print "UpdateModule did not work: " & lResult
+                            If lDoWeUpdate = WhatDoIKnow Then
+                                If MsgBox("New version found on GitHub - update?", vbYesNo, "Auto-Update") = vbYes Then
+                                    lDoWeUpdate = YeahGoForIt
+                                Else
+                                    lDoWeUpdate = NahWhatIHaveIsGood
+                                    Exit For
+                                End If
+                            If lDoWeUpdate = YeahGoForIt Then
+                                lResult = UpdateModule(lComponent.Name, lGitHubCode)
+                                If LenB(lResult) = 0 Then
+                                    Debug.Print "Module '" & lComponent.Name; "' successfully updated"
+                                    Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+                                Else
+                                    Debug.Print "UpdateModule did not work: " & lResult
+                                End If
                             End If
                         Else
                                 Debug.Print "Module '" & lComponent.Name; "' already up-to-date"

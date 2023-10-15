@@ -8,7 +8,7 @@ Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Lo
 Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
 Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/" ' full path like: https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas
 
-Public Enum eDoWeUpdate
+Private Enum eDoWeUpdate
     WhatDoIKnow = 0
     YeahGoForIt = 1
     NahWhatIHaveIsGood = 0
@@ -26,6 +26,13 @@ Public Sub ExportAll()
             Set lStream = Nothing
         End If
     Next lComponent
+End Sub
+
+Public Sub ExportIfShiftKeyPressed()
+    If IsShiftKeyPressed Then
+        Call ExportAll
+        Debug.Print "all sheets exported"
+    End If
 End Sub
 
 Public Sub UpdateAll()

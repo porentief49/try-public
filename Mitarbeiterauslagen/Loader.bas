@@ -52,6 +52,7 @@ Public Sub UpdateAll()
                                     lDoWeUpdate = NahWhatIHaveIsGood
                                     Exit For
                                 End If
+                            End If
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent.Name, lGitHubCode)
                                 If LenB(lResult) = 0 Then

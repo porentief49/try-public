@@ -1,5 +1,5 @@
-' 2023-10-15 add rev. check, update only if required
-' 2023-10-13 initial creation
+'2023-10-15 add rev. check, update only if required
+'2023-10-13 initial creation
 
 Option Explicit
 
@@ -45,20 +45,10 @@ Public Sub UpdateAll()
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         lGitHubRevDate = GetRevDate(lGitHubCode)
                         If lGitHubRevDate > lThisRevDate Then
-                            If lDoWeUpdate = WhatDoIKnow Then
-                                If MsgBox("New version found on GitHub - update?", vbYesNo, "Auto-Update") = vbYes Then
-                                    lDoWeUpdate = YeahGoForIt
-                                Else
-                                    lDoWeUpdate = NahWhatIHaveIsGood
-                                End If
-                            End If
+                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox("New version found on GitHub - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent, lGitHubCode)
-                                If LenB(lResult) = 0 Then
-                                    Call LogMessage(lComponent, "successfully updated with rev. " & lGitHubRevDate)
-                                Else
-                                    Call LogMessage(lComponent, "update failed - " & lResult)
-                                End If
+                                Call LogMessage(lComponent, IIf(LenB(lResult) = 0, "successfully updated with rev. " & lGitHubRevDate, "update failed - " & lResult))
                             Else
                                 Call LogMessage(lComponent, "newer version available (" & lGitHubRevDate & "), but update declined")
                             End If

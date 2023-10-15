@@ -34,9 +34,11 @@ Public Sub UpdateAll()
     Dim lThisRevDate As String
     Dim lGitHubRevDate As String
     Dim lDoWeUpdate As eDoWeUpdate
+'    Dim lModuleClass As String
     lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
-        If lComponent.Type < 2 Then
+'        lModuleClass = IIf(lComponent.Type = vbext_ct_StdModule, "Module", "Class")
+        If lComponent.Type <= 2 Then
 '            If lComponent.Name <> "Loader" Then
                 lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
                 If LenB(lResult) = 0 Then
@@ -49,29 +51,44 @@ Public Sub UpdateAll()
                                     lDoWeUpdate = YeahGoForIt
                                 Else
                                     lDoWeUpdate = NahWhatIHaveIsGood
-                                    Exit For
+'                                    Exit For
                                 End If
                             End If
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent, lGitHubCode)
                                 If LenB(lResult) = 0 Then
-                                    Debug.Print "Module '" & lComponent.Name; "' successfully updated with rev. " & lGitHubRevDate
+'                                    Debug.Print lModuleClass & " '" & lComponent.Name & "': successfully updated with rev. " & lGitHubRevDate
+                                    Call LogMessage(lComponent, "successfully updated with rev. " & lGitHubRevDate)
                                 Else
-                                    Debug.Print "UpdateModule did not work: " & lResult
+'                                    Debug.Print lModuleClass & " '" & lComponent.Name & "': update failed - " & lResult
+                                    Call LogMessage(lComponent, "update failed - " & lResult)
+'                                    Debug.Print "UpdateModule did not work: " & lResult
                                 End If
+                            Else
+'                                    Debug.Print lModuleClass & " '" & lComponent.Name & "': newer version available (" & lGitHubRevDate & "), but update declined"
+                                Call LogMessage(lComponent, "newer version available (" & lGitHubRevDate & "), but update declined")
                             End If
                         Else
 '                            Debug.Print "Module '" & lComponent.Name; "' already up-to-date"
+                            Call LogMessage(lComponent, "already up-to-date (rev. " & lGitHubRevDate & ")")
                         End If
                     Else
-                        Debug.Print "ReadGitHubRaw worked, but no code in module"
+'                        Debug.Print "ReadGitHubRaw worked, but no code in module"
+                        Call LogMessage(lComponent, "GitHub read worked, but code module is empty - not updated")
                     End If
                 Else
-                    Debug.Print "ReadGitHubRaw did not work: " & lResult
+'                    Debug.Print "ReadGitHubRaw did not work: " & lResult
+                    Call LogMessage(lComponent, "GitHub read failed - " & lResult)
                 End If
 '            End If
         End If
     Next lComponent
+End Sub
+
+Private Sub LogMessage(aComponent As VBComponent, aMessage As String)
+    Dim lModuleClass As String
+    lModuleClass = IIf(aComponent.Type = vbext_ct_StdModule, "Module", "Class")
+    Debug.Print lModuleClass & " '" & aComponent.Name & "': " & aMessage
 End Sub
 
 Private Function GetFileName(aComponent As VBComponent) As String

@@ -35,6 +35,14 @@ Public Sub ExportIfShiftKeyPressed()
     End If
 End Sub
 
+Public Sub ExportIfLocalGitRepoPresent()
+    Dim lFso As New FileSystemObject
+    If lFso.FolderExists(LOCAL_REPO_BASE_PATH & "\.git") Then
+        Call ExportAll
+        Debug.Print "all sheets exported"
+    End If
+End Sub
+
 Public Sub UpdateAll()
     Dim lComponent As VBComponent
     Dim lResult As String

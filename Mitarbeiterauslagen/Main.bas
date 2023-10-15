@@ -168,6 +168,7 @@ Public Sub LoadAndDisplayImage()
     Dim shp As Shape
     Dim lHeight As Double
     Dim lWidth As Double
+    Dim lLeft As Double
 
     ' Specify the path to your PNG image file
     imagePath = "C:\temp\QRCode.png" ' Replace with the actual file path
@@ -191,9 +192,10 @@ Public Sub LoadAndDisplayImage()
     
     lHeight = ws.Cells(8, 3).Top - ws.Cells(3, 3).Top
     lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
+    lLeft = (ws.Cells(3, 2).Left - ws.Cells(3, 1).Left) / 2 - lWidth / 2
     ' Position and resize the image as needed
     With pic
-        .Left = ws.Cells(3, 3).Left - lWidth - IMAGE_COL_MARGIN ' Change the coordinates as needed
+        .Left = lLeft 'ws.Cells(3, 3).Left - lWidth - IMAGE_COL_MARGIN ' Change the coordinates as needed
         .Top = ws.Cells(3, 3).Top
         .Locked = False
         .Width = lWidth

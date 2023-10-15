@@ -17,38 +17,39 @@ Private Const COL_EXPENSE As Long = 2
 Private Const COL_VENDOR As Long = 3
 Private Const COL_AMOUNT As Long = 4
 Private Const COL_COMMENT As Long = 5
+Private Const COL_HEADLINE As Long = 1
 Private Const SHEET_EXPENSES As String = "Auslagen"
 Private Const SHEET_REPORT As String = "Abrechnung"
 Private Const BAL_ROW_HEADLINE As Long = 1
 Private Const BAL_ROW_RECEIVER As Long = 3
 Private Const BAL_ROW_IBAN As Long = 6
 Private Const BAL_ROW_AMOUNT As Long = 7
-Private Const COL_HEADLINE As Long = 1
+Private Const BAL_ROW_DATA_START As Long = 10
 Private Const BAL_COL_DATA As Long = 2
 
-Private Function FindFreeRow() As Long
+Private Function FindFreeRow(aSheet As Worksheet) As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
     Dim lRow As Long
     Dim lEmptyCount As Long
     lRow = EXP_ROW_DATA_FIRST
     lEmptyCount = 0
     Do While (lEmptyCount < EMPTY_ROW_THRESHOLD) And (lRow < EXP_ROW_DATA_LAST) '@@@ this is not perfectly correct, because close to the end, it will start overwriting rows
-        lEmptyCount = IIf((Len(Trim$(Cells(lRow, COL_DATE).Value2) & Trim$(Cells(lRow, COL_EXPENSE).Value2) & Trim$(Cells(lRow, COL_VENDOR).Value2) & Trim$(Cells(lRow, COL_AMOUNT).Value2) & Trim$(Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
+        lEmptyCount = IIf((Len(Trim$(aSheet.Cells(lRow, COL_DATE).Value2) & Trim$(aSheet.Cells(lRow, COL_EXPENSE).Value2) & Trim$(aSheet.Cells(lRow, COL_VENDOR).Value2) & Trim$(aSheet.Cells(lRow, COL_AMOUNT).Value2) & Trim$(aSheet.Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
         lRow = lRow + 1
     Loop
     FindFreeRow = lRow - EMPTY_ROW_THRESHOLD
 End Function
 
-Private Sub UpdateStatus(aStatus As String, aOk As Boolean)
+Private Sub UpdateStatus(aStatus As String, aOk As Boolean, aSheet As Worksheet)
     Dim lColLetterFrom As String
     Dim lColLetterTo As String
-    With Cells(EXP_ROW_STATUS, COL_STATUS)
+    With aSheet.Cells(EXP_ROW_STATUS, COL_STATUS)
         .Value2 = aStatus
         .Font.Color = IIf(aOk, &HAA00&, &HCC&)
     End With
     lColLetterFrom = ConvertColToLetter(COL_STATUS)
     lColLetterTo = ConvertColToLetter(COL_COMMENT)
-    Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
+    aSheet.Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
 End Sub
 
 Public Sub ClearMonth()
@@ -56,49 +57,51 @@ Public Sub ClearMonth()
     Dim lBalance As Double
     Dim lTimeRange As String
     Dim lRow As Long
+    Dim lExpensesSheet As Worksheet
     Call SortEntries
-    lBalance = Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
-    lTimeRange = Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
+    lBalance = lExpensesSheet.Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
+    lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) > 0.004 Then
-        lRow = FindFreeRow
-        Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False)
-        Cells(lRow, COL_EXPENSE).Value2 = BALANCE_TITLE & lTimeRange
-        Cells(lRow, COL_AMOUNT).Value2 = -lBalance
-        Call UpdateStatus("OK - " & lTimeRange & " cleared", True)
+        lRow = FindFreeRow(lExpensesSheet)
+        lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False)
+        lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = BALANCE_TITLE & lTimeRange
+        lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
+        Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
     Else
-        Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False)
+        Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False, lExpensesSheet)
     End If
 End Sub
 
 Public Sub CreateReport()
     Const QR_FILE_PATH As String = "C:\temp\QRCode.png"
     Dim lFileName As String
-    Dim lCurrentSheet As Object
+    Dim lExpensesSheet As Worksheet
     Dim lReportSheet As Worksheet
     Dim lBalance As Double
     Dim lTimeRange As String
     Dim lQrString As String
     On Error GoTo hell
-    lBalance = Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
-    lTimeRange = Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
+    Set lExpensesSheet = Sheets(SHEET_EXPENSES)
+    Set lReportSheet = Sheets(SHEET_REPORT)
+    lBalance = lExpensesSheet.Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
+    lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) < 0.004 Then
         Application.ScreenUpdating = False
-        Set lReportSheet = Sheets(SHEET_REPORT)
         
         'generate QR code
         lQrString = EpcQrString(lReportSheet)
         Call GenerateQRCode(lQrString, QR_FILE_PATH)
         
         'place QR code on sheet
-        Call LoadAndDisplayQrCode(QR_FILE_PATH, SHEET_REPORT)
+        Call LoadAndDisplayQrCode(QR_FILE_PATH, lReportSheet)
         
         'export PDF
         lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"
         Call lReportSheet.ExportAsFixedFormat(xlTypePDF, lFileName, xlQualityStandard, True, False, , , True)
-        Call UpdateStatus("OK - report created for " & lTimeRange, True)
+        Call UpdateStatus("OK - report created for " & lTimeRange, True, lExpensesSheet)
         Application.ScreenUpdating = True
     Else
-        Call UpdateStatus("Report for " & lTimeRange & " not created - balance != 0.00EUR - please clear first", False)
+        Call UpdateStatus("Report for " & lTimeRange & " not created - balance != 0.00EUR - please clear first", False, lExpensesSheet)
     End If
     Exit Sub
 hell:
@@ -158,20 +161,20 @@ Private Sub GenerateQRCode(inputString As String, outputPath As String) 'credit:
     Set xmlHttp = Nothing
 End Sub
 
-Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As String)
+Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As Worksheet)
     Const IMAGE_HEIGHT_CORRECTION As Double = 1.118 ' weird - Excel will display squares a little taller than they should be
     Const IMAGE_COL_MARGIN As Double = 5
     Const IMAGE_NAME As String = "QrCode"
-    Dim ws As Worksheet
+'    Dim ws As Worksheet
     Dim pic As Picture
     Dim shp As Shape
     Dim lHeight As Double
     Dim lWidth As Double
     Dim lLeft As Double
-    Set ws = ThisWorkbook.Sheets(aSheet)
+'    Set ws = ThisWorkbook.Sheets(aSheet)
     
     'delete old QR code
-    For Each shp In ws.Shapes
+    For Each shp In aSheet.Shapes
         If shp.Name = IMAGE_NAME Then
             shp.Delete
             Exit For
@@ -179,16 +182,17 @@ Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As String)
     Next shp
 
     'load & place new QR code
-    Set pic = ws.Pictures.Insert(aFile)
+    Set pic = aSheet.Pictures.Insert(aFile)
     pic.Name = IMAGE_NAME
-    ActiveSheet.Shapes.Range(Array(IMAGE_NAME)).Select
-    Selection.ShapeRange.LockAspectRatio = msoFalse
-    lHeight = ws.Cells(8, 3).Top - ws.Cells(3, 3).Top
+'    aSheet.Shapes.Range(Array(IMAGE_NAME)).Select
+'    Selection.ShapeRange.LockAspectRatio = msoFalse
+    aSheet.Shapes.Range(Array(IMAGE_NAME)).LockAspectRatio = msoFalse
+    lHeight = aSheet.Cells(8, BAL_COL_DATA).Top - aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Top
     lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
-    lLeft = (ws.Cells(3, 2).Left - ws.Cells(3, 1).Left) / 2 - lWidth / 2
+    lLeft = (aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Left - aSheet.Cells(BAL_ROW_RECEIVER, COL_HEADLINE).Left) / 2 - lWidth / 2
     With pic
         .Left = lLeft
-        .Top = ws.Cells(3, 3).Top
+        .Top = aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Top
         .Locked = False
         .Width = lWidth
         .Height = lHeight
@@ -249,6 +253,8 @@ Private Sub CopyExpenses()
     Dim lCount As Long
     Dim lDate As Double
     Dim lFrom As Double
+'    dim
+    
 '    Dim lTo As Double
 '    lCount = 0
 '    llast = FindFreeRow

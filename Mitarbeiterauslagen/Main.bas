@@ -28,6 +28,7 @@ Private Const RPT_ROW_DATA_START As Long = 10
 Private Const RPT_ROW_DATA_END As Long = 62
 Private Const RPT_COL_DATA As Long = 2
 Private Const TWO_SECONDS As Double = 0.00002
+Private Const REPORT_TITLE As String = "Abrechnung Mitarbeiterauslagen "
 
 Private Function FindFreeRow(aSheet As Worksheet) As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
@@ -55,7 +56,6 @@ Private Sub UpdateStatus(aStatus As String, aOk As Boolean, aSheet As Worksheet)
 End Sub
 
 Public Sub ClearMonth()
-    Const REPORT_TITLE As String = "Abrechnung Mitarbeiterauslagen "
     Dim lBalance As Double
     Dim lTimeRange As String
     Dim lRow As Long
@@ -70,6 +70,7 @@ Public Sub ClearMonth()
         lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False) - TWO_SECONDS ' 2s before the "close to midnight date used as the end term - will make sure this is always sorted as the last entry per month
         lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = REPORT_TITLE & lTimeRange
         lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
+        Call FormatExpenses(lExpensesSheet, lRow)
         Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
         Application.ScreenUpdating = True
     Else
@@ -208,23 +209,6 @@ Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As Worksheet)
     Set pic = Nothing
 End Sub
 
-'Sub UnlockAspectRatioOfPicture()
-'    Dim ws As Worksheet
-'    Dim pic As Picture
-'
-'    ' Set the worksheet and the picture you want to work with
-'    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
-'    Set pic = ws.Pictures("huhu") ' Change "Picture 1" to the name of your picture
-'
-'    ' Check if the picture exists
-'    If Not pic Is Nothing Then
-'        ' Unlock the aspect ratio
-'        pic.LockAspectRatio = msoFalse
-'    Else
-'        MsgBox "Picture not found on the specified sheet."
-'    End If
-'End Sub
-
 'Public Sub TestQr()
 '    ' Usage example:
 '    Dim inputString As String
@@ -234,6 +218,28 @@ End Sub
 '    Call GenerateQRCode(Replace$(inputString, "|", "%0A"), outputPath)
 '    Debug.Print "QR code generated and saved as " & outputPath
 'End Sub
+
+Private Sub FormatExpenses(aSheet As Worksheet, aRow As Long)
+    Dim lColLetterFrom As String
+    Dim lColLetterTo As String
+    Dim i As Long
+    Dim lCompareLength As Long
+    lColLetterFrom = ConvertColToLetter(COL_STATUS)
+    lColLetterTo = ConvertColToLetter(COL_COMMENT)
+    With aSheet.Range(lColLetterFrom & CStr(EXP_ROW_DATA_FIRST) & ":" & lColLetterTo & CStr(EXP_ROW_DATA_LAST))
+        .Font.Color = &HFF0000
+        .Font.Italic = False
+    End With
+    lCompareLength = Len(REPORT_TITLE)
+    For i = EXP_ROW_DATA_FIRST To aRow
+        If Left$(aSheet.Cells(i, COL_EXPENSE).Value2, lCompareLength) = REPORT_TITLE Then
+                With aSheet.Range(lColLetterFrom & CStr(i) & ":" & lColLetterTo & CStr(i))
+                    .Font.Color = &H9900&
+                    .Font.Italic = True
+                End With
+        End If
+    Next i
+End Sub
 
 Private Sub SortEntries(aSheet As Worksheet)
     Dim lColLetter As String
@@ -259,18 +265,8 @@ Private Function CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Works
     Dim lDate As Double
     Dim lStatus As String
     lStatus = vbNullString
-    
-'    Dim lColLetterFrom As String
-'    Dim lColLetterTo As String
-'    With aSheet.Cells(EXP_ROW_STATUS, COL_STATUS)
-'        .Value2 = aStatus
-'        .Font.Color = IIf(aOk, &HAA00&, &HCC&)
-'    End With
-'    lColLetterFrom = ConvertColToLetter(COL_DATE)
-'    lColLetterTo = ConvertColToLetter(COL_AMOUNT)
-'    aSheet.Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
-    Call aReportSheet.Range(CStr(EXP_ROW_DATA_FIRST) & ":" & CStr(EXP_ROW_DATA_LAST)).Clear
-    lRowReport = EXP_ROW_DATA_FIRST
+    Call aReportSheet.Range(CStr(RPT_ROW_DATA_START) & ":" & CStr(RPT_ROW_DATA_END)).ClearContents
+    lRowReport = RPT_ROW_DATA_START
     lFrom = aExpensesSheet.Cells(EXP_ROW_RANGE_FROM, COL_DATE).Value2
     lTo = aExpensesSheet.Cells(EXP_ROW_RANGE_TO, COL_DATE).Value2
     lLastRowExpenses = FindFreeRow(aExpensesSheet)
@@ -278,6 +274,7 @@ Private Function CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Works
         lDate = aExpensesSheet.Cells(i, COL_DATE).Value2
         If lDate > lFrom And lDate < lTo Then
             aReportSheet.Cells(lRowReport, COL_DATE).Value2 = lDate
+            aReportSheet.Cells(lRowReport, COL_EXPENSE).Value2 = aExpensesSheet.Cells(i, COL_EXPENSE).Value2
             aReportSheet.Cells(lRowReport, COL_VENDOR).Value2 = aExpensesSheet.Cells(i, COL_VENDOR).Value2
             aReportSheet.Cells(lRowReport, COL_AMOUNT).Value2 = aExpensesSheet.Cells(i, COL_AMOUNT).Value2
             lRowReport = lRowReport + 1
@@ -288,23 +285,6 @@ Private Function CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Works
         End If
     Next i
     CopyExpenses = lStatus
-'    Const MAX_COUNT As Long = 53
-'    Dim lCount As Long
-'    Dim lDate As Double
-'    Dim lFrom As Double
-'    dim
-    
-'    Dim lTo As Double
-'    lCount = 0
-'    llast = FindFreeRow
-'    lFrom = Cells(EXP_ROW_RANGE_FROM, COL_DATE).Value2
-'    lTo = Cells(EXP_ROW_RANGE_TO, COL_DATE).Value2
-'    For i = EXP_ROW_DATA_FIRST To llast
-'        lDate = Cells(i, COL_DATE).Value2
-'        If lDate >= lFrom And lDate <= lTo Then
-'            if lcount < MAX_COUNT
-'        End If
-'    Next i
 End Function
 
 Private Function ConvertColToLetter(aColumn As Long) As String

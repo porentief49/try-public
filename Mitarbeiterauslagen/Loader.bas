@@ -66,7 +66,7 @@ Public Sub UpdateAll()
                                 End If
                             Else
 '                                    Debug.Print lModuleClass & " '" & lComponent.Name & "': newer version available (" & lGitHubRevDate & "), but update declined"
-                                Call LogMessage(lComponent, "newer version available (" & lGitHubRevDate & "), but update declined")
+                                Call LogMessage(lComponent, "newer version available (rev. " & lGitHubRevDate & "), but update declined")
                             End If
                         Else
 '                            Debug.Print "Module '" & lComponent.Name; "' already up-to-date"

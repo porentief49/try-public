@@ -27,6 +27,7 @@ Private Const RPT_ROW_AMOUNT As Long = 7
 Private Const RPT_ROW_DATA_START As Long = 10
 Private Const RPT_ROW_DATA_END As Long = 62
 Private Const RPT_COL_DATA As Long = 2
+Private Const TWO_SECONDS As Double = 0.00002
 
 Private Function FindFreeRow(aSheet As Worksheet) As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
@@ -54,7 +55,7 @@ Private Sub UpdateStatus(aStatus As String, aOk As Boolean, aSheet As Worksheet)
 End Sub
 
 Public Sub ClearMonth()
-    Const BALANCE_TITLE As String = "Abrechnung Mitarbeiterauslagen "
+    Const REPORT_TITLE As String = "Abrechnung Mitarbeiterauslagen "
     Dim lBalance As Double
     Dim lTimeRange As String
     Dim lRow As Long
@@ -66,8 +67,8 @@ Public Sub ClearMonth()
         lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
         Call SortEntries(lExpensesSheet)
         lRow = FindFreeRow(lExpensesSheet)
-        lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False)
-        lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = BALANCE_TITLE & lTimeRange
+        lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False) - TWO_SECONDS ' 2s before the "close to midnight date used as the end term - will make sure this is always sorted as the last entry per month
+        lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = REPORT_TITLE & lTimeRange
         lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
         Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
         Application.ScreenUpdating = True
@@ -84,6 +85,7 @@ Public Sub CreateReport()
     Dim lBalance As Double
     Dim lTimeRange As String
     Dim lQrString As String
+    Dim lStatus As String
     On Error GoTo hell
     Set lExpensesSheet = Sheets(SHEET_EXPENSES)
     Set lReportSheet = Sheets(SHEET_REPORT)
@@ -92,17 +94,23 @@ Public Sub CreateReport()
     If Abs(lBalance) < 0.004 Then
         Application.ScreenUpdating = False
         
-        'generate QR code
-        lQrString = EpcQrString(lReportSheet)
-        Call GenerateQRCode(lQrString, QR_FILE_PATH)
-        
-        'place QR code on sheet
-        Call LoadAndDisplayQrCode(QR_FILE_PATH, lReportSheet)
-        
-        'export PDF
-        lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"
-        Call lReportSheet.ExportAsFixedFormat(xlTypePDF, lFileName, xlQualityStandard, True, False, , , True)
-        Call UpdateStatus("OK - report created for " & lTimeRange, True, lExpensesSheet)
+        lStatus = CopyExpenses(lExpensesSheet, lReportSheet)
+        If LenB(lStatus) = 0 Then
+            
+            'generate QR code
+            lQrString = EpcQrString(lReportSheet)
+            Call GenerateQRCode(lQrString, QR_FILE_PATH)
+            
+            'place QR code on sheet
+            Call LoadAndDisplayQrCode(QR_FILE_PATH, lReportSheet)
+            
+            'export PDF
+            lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"
+            Call lReportSheet.ExportAsFixedFormat(xlTypePDF, lFileName, xlQualityStandard, True, False, , , True)
+            Call UpdateStatus("OK - report created for " & lTimeRange, True, lExpensesSheet)
+        Else
+            Call UpdateStatus("not created - " & lStatus, False, lExpensesSheet)
+        End If
         Application.ScreenUpdating = True
     Else
         Call UpdateStatus("Report for " & lTimeRange & " not created - balance != 0.00EUR - please clear first", False, lExpensesSheet)
@@ -242,12 +250,15 @@ Private Sub SortEntries(aSheet As Worksheet)
     End With
 End Sub
 
-Private Sub CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Worksheet)
+Private Function CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Worksheet) As String
     Dim lRowReport As Long
     Dim lFrom As Double
     Dim lTo As Double
     Dim lLastRowExpenses As Long
     Dim i As Long
+    Dim lDate As Double
+    Dim lStatus As String
+    lStatus = vbNullString
     
 '    Dim lColLetterFrom As String
 '    Dim lColLetterTo As String
@@ -264,8 +275,19 @@ Private Sub CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Worksheet)
     lTo = aExpensesSheet.Cells(EXP_ROW_RANGE_TO, COL_DATE).Value2
     lLastRowExpenses = FindFreeRow(aExpensesSheet)
     For i = EXP_ROW_DATA_FIRST To lLastRowExpenses
-    
+        lDate = aExpensesSheet.Cells(i, COL_DATE).Value2
+        If lDate > lFrom And lDate < lTo Then
+            aReportSheet.Cells(lRowReport, COL_DATE).Value2 = lDate
+            aReportSheet.Cells(lRowReport, COL_VENDOR).Value2 = aExpensesSheet.Cells(i, COL_VENDOR).Value2
+            aReportSheet.Cells(lRowReport, COL_AMOUNT).Value2 = aExpensesSheet.Cells(i, COL_AMOUNT).Value2
+            lRowReport = lRowReport + 1
+            If lRowReport > RPT_ROW_DATA_END Then
+                lStatus = "too many epenses - can't displayed on a single report sheet. Ask for help!"
+                Exit For
+            End If
+        End If
     Next i
+    CopyExpenses = lStatus
 '    Const MAX_COUNT As Long = 53
 '    Dim lCount As Long
 '    Dim lDate As Double
@@ -283,7 +305,7 @@ Private Sub CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Worksheet)
 '            if lcount < MAX_COUNT
 '        End If
 '    Next i
-End Sub
+End Function
 
 Private Function ConvertColToLetter(aColumn As Long) As String
     ConvertColToLetter = Chr$(64 + aColumn)
@@ -301,7 +323,7 @@ Private Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As
         DateFromTo = DateSerial(lYear, lMonth, 1)
     Else
         lNextMonth = DateSerial(lYear, lMonth, 1) + 35
-        DateFromTo = DateSerial(year(lNextMonth), month(lNextMonth), 1) - 0.0001 '-1 would get the correct day, but midnight of that. In case a date has a time with it that's later, that would fall out. So creating "a few seconds before the next 1st" date/time stamp here ...
+        DateFromTo = DateSerial(year(lNextMonth), month(lNextMonth), 1) - TWO_SECONDS '-1 would get the correct day, but midnight of that. In case a date has a time with it that's later, that would fall out. So creating "a few seconds before the next 1st" date/time stamp here ...
     End If
 End Function
 

@@ -2,6 +2,8 @@
 
 Option Explicit
 
+Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
+
 Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
 'Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas"
 Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/"
@@ -23,25 +25,33 @@ End Sub
 Public Sub UpdateAll()
     Dim lComponent As VBComponent
     Dim lResult As String
-    Dim lCode As String
+    Dim lGitHubCode As String
+    Dim lThisRevDate As String
+    Dim lGitHubRevDate As String
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type < 2 Then
 '            If lComponent.Name <> "Loader" Then
-                lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lCode)
+                lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
                 If LenB(lResult) = 0 Then
-                    If LenB(lCode) > 0 Then
-                        lResult = UpdateModule(lComponent.Name, lCode)
-                        If LenB(lResult) = 0 Then
-                            Debug.Print "Module '" & lComponent.Name; "' successfully updated"
-                            Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+                    If LenB(lGitHubCode) > 0 Then
+                        lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+                        lGitHubRevDate = GetRevDate(lGitHubCode)
+                        If lGitHubRevDate > lThisRevDate Then
+                            lResult = UpdateModule(lComponent.Name, lGitHubCode)
+                            If LenB(lResult) = 0 Then
+                                Debug.Print "Module '" & lComponent.Name; "' successfully updated"
+                                Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+                            Else
+                                Debug.Print "UpdateModule did not work: " & lResult
+                            End If
                         Else
-                            Debug.Print "UpdateModule did not work: " & lResult
+                                Debug.Print "Module '" & lComponent.Name; "' already up-to-date"
                         End If
                     Else
-                        Debug.Print "ReadGoogleDrive worked, but no code in module"
+                        Debug.Print "ReadGitHubRaw worked, but no code in module"
                     End If
                 Else
-                    Debug.Print "ReadGoogleDrive did not work: " & lResult
+                    Debug.Print "ReadGitHubRaw did not work: " & lResult
                 End If
 '            End If
         End If
@@ -100,8 +110,8 @@ Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As Str
 End Function
 
 
-Private Function ReadGitHubRaw(aUrl As String, ByRef aCodeModule As String) As String '2023-10-09, rAiner Gruber
-    ' credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
+Private Function ReadGitHubRaw(aUrl As String, ByRef aCodeModule As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
+    
     ' this is the link format needed: https://drive.google.com/uc?id=YOUR_FILE_ID"
     ' when you share in google drive, you will get this link: https://drive.google.com/file/d/18D2GscIRnO286zlWqNTSL06jcMgtTeon/view?usp=sharing
     ' now grab the doc ID and put it into the link above: https://drive.google.com/uc?id=18D2GscIRnO286zlWqNTSL06jcMgtTeon
@@ -131,7 +141,7 @@ hell:
 End Function
 
 
-Private Function UpdateModule(aModuleName As String, aCode As String) As String '2023-10-09, rAiner Gruber
+Private Function UpdateModule(aModuleName As String, aCode As String) As String
 '    Dim lFso As New FileSystemObject
 '    Dim lStream As TextStream
     Dim lProject As VBProject
@@ -159,6 +169,9 @@ hell:
     UpdateModule = "Error: " & Err.Description
 End Function
 
+Function IsShiftKeyPressed() As Boolean 'credit: https://chat.openai.com/share/2c52b886-2200-41a9-93b1-40503edf8baa
+    IsShiftKeyPressed = (GetAsyncKeyState(16) And &H8000) <> 0
+End Function
 
 
 

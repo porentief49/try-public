@@ -3,12 +3,12 @@
 Option Explicit
 
 Public Const EXP_ROW_TIMERANGE As Long = 1
-Public Const EXP_ROW_BALANCE_MONTH As Long = 3
-Public Const EXP_ROW_BALANCEL_TOTAL As Long = 4
-Public Const EXP_ROW_RANGE_FROM As Long = 3
-Public Const EXP_ROW_RANGE_TO As Long = 4
-Public Const EXP_ROW_STATUS As Long = 6
-Public Const EXP_ROW_DATA_FIRST As Long = 9
+Public Const EXP_ROW_RANGE_FROM As Long = 5
+Public Const EXP_ROW_BALANCE_MONTH As Long = 5
+Public Const EXP_ROW_BALANCEL_TOTAL As Long = 6
+Public Const EXP_ROW_RANGE_TO As Long = 6
+Public Const EXP_ROW_STATUS As Long = 8
+Public Const EXP_ROW_DATA_FIRST As Long = 11
 Public Const EXP_ROW_DATA_LAST As Long = 9999
 Public Const EXP_COL_TIMERANGE As Long = 4
 Public Const COL_DATE As Long = 1
@@ -26,32 +26,32 @@ Public Const BAL_ROW_AMOUNT As Long = 7
 Public Const COL_HEADLINE As Long = 1
 Public Const BAL_COL_DATA As Long = 2
 
-Public Function FindFreeRow() As Long '2020-04-27 rAiner Gruber
+Public Function FindFreeRow() As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
     Dim lRow As Long
     Dim lEmptyCount As Long
     lRow = EXP_ROW_DATA_FIRST
     lEmptyCount = 0
     Do While (lEmptyCount < EMPTY_ROW_THRESHOLD) And (lRow < EXP_ROW_DATA_LAST) '@@@ this is not perfectly correct, because close to the end, it will start overwriting rows
-        lEmptyCount = IifLong((Len(Trim$(Cells(lRow, COL_DATE).Value2) & Trim$(Cells(lRow, COL_EXPENSE).Value2) & Trim$(Cells(lRow, COL_VENDOR).Value2) & Trim$(Cells(lRow, COL_AMOUNT).Value2) & Trim$(Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
+        lEmptyCount = IIf((Len(Trim$(Cells(lRow, COL_DATE).Value2) & Trim$(Cells(lRow, COL_EXPENSE).Value2) & Trim$(Cells(lRow, COL_VENDOR).Value2) & Trim$(Cells(lRow, COL_AMOUNT).Value2) & Trim$(Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
         lRow = lRow + 1
     Loop
     FindFreeRow = lRow - EMPTY_ROW_THRESHOLD
 End Function
 
-Public Sub UpdateStatus(aStatus As String, aOk As Boolean) '2023-10-09, rAiner Gruber
+Public Sub UpdateStatus(aStatus As String, aOk As Boolean)
     Dim lColLetterFrom As String
     Dim lColLetterTo As String
     With Cells(EXP_ROW_STATUS, COL_STATUS)
         .Value2 = aStatus
-        .Font.Color = IifLong(aOk, &HAA00&, &HCC&)
+        .Font.Color = IIf(aOk, &HAA00&, &HCC&)
     End With
     lColLetterFrom = ConvertColToLetter(COL_STATUS)
     lColLetterTo = ConvertColToLetter(COL_COMMENT)
-    Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IifLong(aOk, &HDDFFDD, &HDDDDFF)
+    Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
 End Sub
 
-Public Sub CreateBalance() '2023-10-08 rAiner Gruber
+Public Sub CreateBalance()
     Const BALANCE_TITLE As String = "Abrechnung Mitarbeiterauslagen "
     Dim lBalance As Double
     Dim lTimeRange As String
@@ -73,7 +73,7 @@ Public Sub CreateBalance() '2023-10-08 rAiner Gruber
     End If
 End Sub
 
-Public Sub ExportPDF() '2015-05-11 rAiner Gruber
+Public Sub ExportPDF()
     Dim lFileName As String
     Dim lCurrentSheet As Object
     Dim lBalance As Double
@@ -102,8 +102,8 @@ hell:
     Err.Raise (Err.Number)
 End Sub
 
-Public Function EpcQrText() '2023-10-08 rAiner Gruber
-    Const NEW_LINE As String = "\r\n"
+Public Function EpcQrText()
+    Const NEW_LINE As String = "%0A"
     Dim l1_ServiceTag As String
     Dim l2_Version As String
     Dim l3_Encoding As String
@@ -131,56 +131,40 @@ Public Function EpcQrText() '2023-10-08 rAiner Gruber
     EpcQrText = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title & NEW_LINE & l12_Comment
 End Function
 
-Public Sub GenerateQRCode(inputString As String, outputPath As String) '2023-10-08 rAiner Gruber
-    ' credit: https://chat.openai.com/share/4a3043e0-024f-499b-a270-3426e18e9f1a
-    ' check out: https://goqr.me/api/
+Public Sub GenerateQRCode(inputString As String, outputPath As String) 'credit: https://chat.openai.com/share/4a3043e0-024f-499b-a270-3426e18e9f1a
     Dim xmlHttp As Object
-    Set xmlHttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
-    
-    ' Replace "Your-API-Endpoint" with the actual API endpoint you want to use
     Dim apiEndpoint As String
-'    apiEndpoint = "https://api.qr-code-generator.com/v1/create/?data=" & inputString
-    apiEndpoint = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=M&data=" & inputString
-    
-    ' Send GET request to the API
-    xmlHttp.Open "GET", apiEndpoint, False
+    Set xmlHttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    apiEndpoint = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=M&data=" & inputString ' check out: https://goqr.me/api/
+    xmlHttp.Open "GET", apiEndpoint, False ' Send GET request to the API
     xmlHttp.send ""
-    
-    ' Check if the request was successful
-    If xmlHttp.Status = 200 Then
-        ' Create a binary stream for the image
-        Dim imageStream As Object
+    If xmlHttp.Status = 200 Then ' Check if the request was successful
+        Dim imageStream As Object ' Create a binary stream for the image
         Set imageStream = CreateObject("ADODB.Stream")
-        imageStream.Open
+        Call imageStream.Open
         imageStream.Type = 1 ' Binary
-        imageStream.Write xmlHttp.responseBody
-        
-        ' Save the image to the specified file path
-        imageStream.SaveToFile outputPath, 2 ' Overwrite existing file
-        
-        ' Clean up
-        imageStream.Close
+        Call imageStream.Write(xmlHttp.responseBody)
+        Call imageStream.SaveToFile(outputPath, 2)  ' Save the image to the specified file path ' Overwrite existing file
+        imageStream.Close ' Clean up
         Set imageStream = Nothing
     Else
         MsgBox "Failed to generate QR code. HTTP Status: " & xmlHttp.Status
     End If
-    
-    ' Clean up
-    xmlHttp.abort
+    xmlHttp.abort ' Clean up
     Set xmlHttp = Nothing
 End Sub
 
-Public Sub TestQr() '2023-10-08 rAiner Gruber
+Public Sub TestQr()
     ' Usage example:
     Dim inputString As String
     Dim outputPath As String
     inputString = "BCD|002|1|SCT||Paul|DE30702501500027525005|EUR1.00||Zweck"
     outputPath = "C:\temp\QRCode.png"
-    Call GenerateQRCode(Replace$(inputString, "|", "\n"), outputPath)
+    Call GenerateQRCode(Replace$(inputString, "|", "%0A"), outputPath)
     Debug.Print "QR code generated and saved as " & outputPath
 End Sub
 
-Public Sub SortEntries() '2020-04-29 rAiner Gruber
+Public Sub SortEntries()
     Dim lSelectCache As Range
     Dim lColLetter As String
     lColLetter = ConvertColToLetter(COL_DATE)
@@ -201,7 +185,7 @@ Public Sub SortEntries() '2020-04-29 rAiner Gruber
     Application.ScreenUpdating = True
 End Sub
 
-Public Sub CopyExpenses() '2023-10-09, rAiner Gruber
+Public Sub CopyExpenses()
     Const MAX_COUNT As Long = 53
     Dim lCount As Long
     Dim lDate As Double
@@ -219,15 +203,15 @@ Public Sub CopyExpenses() '2023-10-09, rAiner Gruber
 '    Next i
 End Sub
 
-Public Function IifLong(ByVal aExpression As Boolean, ByVal aTruePart As Long, ByVal aFalsePart As Long) As Long '2009-11-12 rAiner Gruber
-    If aExpression Then IifLong = aTruePart Else IifLong = aFalsePart
-End Function
+'Public Function IifLong(ByVal aExpression As Boolean, ByVal aTruePart As Long, ByVal aFalsePart As Long) As Long
+'    If aExpression Then IifLong = aTruePart Else IifLong = aFalsePart
+'End Function
 
-Public Function ConvertColToLetter(aColumn As Long) As String '2015-05-11 rAiner Gruber
+Public Function ConvertColToLetter(aColumn As Long) As String
     ConvertColToLetter = Chr$(64 + aColumn)
 End Function
 
-Public Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As Double ' 2023-10-08 rAiner Gruber
+Public Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As Double
     Dim lYear As Long
     Dim lMonth As Long
     Dim lSplit() As String

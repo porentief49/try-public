@@ -2,31 +2,31 @@
 
 Option Explicit
 
-Public Const EXP_ROW_TIMERANGE As Long = 1
-Public Const EXP_ROW_RANGE_FROM As Long = 5
-Public Const EXP_ROW_BALANCE_MONTH As Long = 5
-Public Const EXP_ROW_BALANCEL_TOTAL As Long = 6
-Public Const EXP_ROW_RANGE_TO As Long = 6
-Public Const EXP_ROW_STATUS As Long = 8
-Public Const EXP_ROW_DATA_FIRST As Long = 11
-Public Const EXP_ROW_DATA_LAST As Long = 9999
-Public Const EXP_COL_TIMERANGE As Long = 4
-Public Const COL_DATE As Long = 1
-Public Const COL_STATUS As Long = 1
-Public Const COL_EXPENSE As Long = 2
-Public Const COL_VENDOR As Long = 3
-Public Const COL_AMOUNT As Long = 4
-Public Const COL_COMMENT As Long = 5
-Public Const SHEET_EXPENSES As String = "Auslagen"
-Public Const SHEET_BALANCE As String = "Abrechnung"
-Public Const BAL_ROW_HEADLINE As Long = 1
-Public Const BAL_ROW_RECEIVER As Long = 3
-Public Const BAL_ROW_IBAN As Long = 6
-Public Const BAL_ROW_AMOUNT As Long = 7
-Public Const COL_HEADLINE As Long = 1
-Public Const BAL_COL_DATA As Long = 2
+Private Const EXP_ROW_TIMERANGE As Long = 1
+Private Const EXP_ROW_RANGE_FROM As Long = 5
+Private Const EXP_ROW_BALANCE_MONTH As Long = 5
+Private Const EXP_ROW_BALANCEL_TOTAL As Long = 6
+Private Const EXP_ROW_RANGE_TO As Long = 6
+Private Const EXP_ROW_STATUS As Long = 8
+Private Const EXP_ROW_DATA_FIRST As Long = 11
+Private Const EXP_ROW_DATA_LAST As Long = 9999
+Private Const EXP_COL_TIMERANGE As Long = 4
+Private Const COL_DATE As Long = 1
+Private Const COL_STATUS As Long = 1
+Private Const COL_EXPENSE As Long = 2
+Private Const COL_VENDOR As Long = 3
+Private Const COL_AMOUNT As Long = 4
+Private Const COL_COMMENT As Long = 5
+Private Const SHEET_EXPENSES As String = "Auslagen"
+Private Const SHEET_BALANCE As String = "Abrechnung"
+Private Const BAL_ROW_HEADLINE As Long = 1
+Private Const BAL_ROW_RECEIVER As Long = 3
+Private Const BAL_ROW_IBAN As Long = 6
+Private Const BAL_ROW_AMOUNT As Long = 7
+Private Const COL_HEADLINE As Long = 1
+Private Const BAL_COL_DATA As Long = 2
 
-Public Function FindFreeRow() As Long
+Private Function FindFreeRow() As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
     Dim lRow As Long
     Dim lEmptyCount As Long
@@ -39,7 +39,7 @@ Public Function FindFreeRow() As Long
     FindFreeRow = lRow - EMPTY_ROW_THRESHOLD
 End Function
 
-Public Sub UpdateStatus(aStatus As String, aOk As Boolean)
+Private Sub UpdateStatus(aStatus As String, aOk As Boolean)
     Dim lColLetterFrom As String
     Dim lColLetterTo As String
     With Cells(EXP_ROW_STATUS, COL_STATUS)
@@ -64,36 +64,39 @@ Public Sub CreateBalance()
         Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False)
         Cells(lRow, COL_EXPENSE).Value2 = BALANCE_TITLE & lTimeRange
         Cells(lRow, COL_AMOUNT).Value2 = -lBalance
-'        Call UpdateStatus("OK - Abrechnung fuer " & lTimeRange & " erstellt.", True)
         Call UpdateStatus("OK - " & lTimeRange & " cleared", True)
     Else
-'        Call MsgBox("Abrechnung f? lTimeRange & " nicht m?ch - Saldo ist bereits 0.00?. Wurde vielleicht bereits abgerechnet?", vbExclamation, "Abrechnung")
-'        Call UpdateStatus("Abrechnung fuer " & lTimeRange & " nicht moeglich - Saldo ist bereits 0.00 EUR. Wurde vielleicht bereits abgerechnet?", False)
         Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False)
     End If
 End Sub
 
-Public Sub ExportPDF()
+Public Sub CreateReport()
+    Const QR_FILE_PATH As String = "C:\temp\QRCode.png"
     Dim lFileName As String
     Dim lCurrentSheet As Object
+    Dim lReportSheet As Worksheet
     Dim lBalance As Double
     Dim lTimeRange As String
+    Dim lQrString As String
     On Error GoTo hell
     lBalance = Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
     lTimeRange = Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) < 0.004 Then
         Application.ScreenUpdating = False
-        Set lCurrentSheet = ActiveSheet
-        Call Sheets(SHEET_BALANCE).Select
-        lFileName = Replace$(Environ("userprofile") & "\Desktop\" & Cells(1, 1).Value, " ", "_") & ".pdf"
-        ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, FileName:=lFileName, Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=True
-        Call lCurrentSheet.Select
-        Application.ScreenUpdating = True
-'        Call UpdateStatus("OK - Abrechnung fuer " & lTimeRange & " exportiert.", True)
+        Set lReportSheet = Sheets(SHEET_BALANCE)
+        
+        'generate QR code
+        lQrString = EpcQrString(lReportSheet)
+        Call GenerateQRCode(lQrString, QR_FILE_PATH)
+        
+        'place QR code on sheet
+        
+        
+        lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"
+        Call lReportSheet.ExportAsFixedFormat(xlTypePDF, lFileName, xlQualityStandard, True, False, , , True)
         Call UpdateStatus("OK - report created for " & lTimeRange, True)
+        Application.ScreenUpdating = True
     Else
-'        Call MsgBox("Export Abrechnung " & lTimeRange & " nicht m?ch - Saldo ungleich 0.00?. Bitte erst abrechnen.", vbExclamation, "Abrechnung")
-'        Call UpdateStatus("Export Abrechnung " & lTimeRange & " nicht m?ch - Saldo ungleich 0.00?. Bitte erst abrechnen.", False)
         Call UpdateStatus("Report for " & lTimeRange & " not created - balance != 0.00EUR - please clear first", False)
     End If
     Exit Sub
@@ -102,7 +105,7 @@ hell:
     Err.Raise (Err.Number)
 End Sub
 
-Public Function EpcQrText()
+Private Function EpcQrString(aSheet As Worksheet) As String
     Const NEW_LINE As String = "%0A"
     Dim l1_ServiceTag As String
     Dim l2_Version As String
@@ -121,17 +124,17 @@ Public Function EpcQrText()
     l3_Encoding = "1"
     l4_Id = "SCT"
     l5_BIC = "" 'optional
-    l6_Receiver = Left$(Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Value2, 60)
-    l7_IBAN = Replace$(Cells(BAL_ROW_IBAN, BAL_COL_DATA).Value2, " ", vbNullString)
-    l8_Amount = "EUR" & Format$(Cells(BAL_ROW_AMOUNT, BAL_COL_DATA).Value2, "0.00")
+    l6_Receiver = Left$(aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Value2, 60)
+    l7_IBAN = Replace$(aSheet.Cells(BAL_ROW_IBAN, BAL_COL_DATA).Value2, " ", vbNullString)
+    l8_Amount = "EUR" & Format$(aSheet.Cells(BAL_ROW_AMOUNT, BAL_COL_DATA).Value2, "0.00")
     l9_Code = ""
     l10_Ref = ""
-    l11_Title = Left$(Cells(BAL_ROW_HEADLINE, COL_HEADLINE).Value2, 140)
+    l11_Title = Left$(aSheet.Cells(BAL_ROW_HEADLINE, COL_HEADLINE).Value2, 140)
     l12_Comment = ""
-    EpcQrText = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title & NEW_LINE & l12_Comment
+    EpcQrString = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title & NEW_LINE & l12_Comment
 End Function
 
-Public Sub GenerateQRCode(inputString As String, outputPath As String) 'credit: https://chat.openai.com/share/4a3043e0-024f-499b-a270-3426e18e9f1a
+Private Sub GenerateQRCode(inputString As String, outputPath As String) 'credit: https://chat.openai.com/share/4a3043e0-024f-499b-a270-3426e18e9f1a
     Dim xmlHttp As Object
     Dim apiEndpoint As String
     Set xmlHttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
@@ -154,6 +157,88 @@ Public Sub GenerateQRCode(inputString As String, outputPath As String) 'credit: 
     Set xmlHttp = Nothing
 End Sub
 
+Public Sub LoadAndDisplayImage()
+'    Const IMAGE_WIDTH_HEIGHT As Double = 100
+    Const IMAGE_HEIGHT_CORRECTION As Double = 1.118 ' weird - Excel will display squares a little taller than they should be
+    Const IMAGE_COL_MARGIN As Double = 5
+    Const IMAGE_NAME As String = "QrCode"
+    Dim imagePath As String
+    Dim ws As Worksheet
+    Dim pic As Picture
+    Dim shp As Shape
+    Dim lHeight As Double
+    Dim lWidth As Double
+
+    ' Specify the path to your PNG image file
+    imagePath = "C:\temp\QRCode.png" ' Replace with the actual file path
+
+    ' Set the worksheet where you want to display the image
+    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
+
+    For Each shp In ws.Shapes
+        If shp.Name = IMAGE_NAME Then
+            shp.Delete
+            Exit For
+        End If
+    Next shp
+
+    ' Create a new Picture object and load the image
+    Set pic = ws.Pictures.Insert(imagePath)
+    pic.Name = IMAGE_NAME
+    
+    ActiveSheet.Shapes.Range(Array(IMAGE_NAME)).Select
+    Selection.ShapeRange.LockAspectRatio = msoFalse
+    
+    lHeight = ws.Cells(8, 3).Top - ws.Cells(3, 3).Top
+    lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
+    ' Position and resize the image as needed
+    With pic
+        .Left = ws.Cells(3, 3).Left - lWidth - IMAGE_COL_MARGIN ' Change the coordinates as needed
+        .Top = ws.Cells(3, 3).Top
+        .Locked = False
+        .Width = lWidth
+        .Height = lHeight
+'        .Width = 100
+'        .Height = 100 * 1.118
+'        .LockAspectRatio = msoFalse
+        ' You can set .Width and .Height properties to resize the image
+'        .Name = IMAGE_NAME
+    End With
+'    Selection.ShapeRange.ScaleWidth 1.4423076923, msoFalse, msoScaleFromTopLeft
+'    Selection.ShapeRange.ScaleHeight 2.5089445438, msoFalse, msoScaleFromTopLeft
+
+'    With pic
+'        .Left = ws.Cells(1, 1).Left ' Change the coordinates as needed
+'        .Top = ws.Cells(1, 1).Top
+'        .Locked = False
+'        .LockAspectRatio = msoFalse
+        ' You can set .Width and .Height properties to resize the image
+'        .Name = "huhu"
+'    End With
+    
+    
+    
+    ' Clean up
+    Set pic = Nothing
+End Sub
+
+Sub UnlockAspectRatioOfPicture()
+    Dim ws As Worksheet
+    Dim pic As Picture
+
+    ' Set the worksheet and the picture you want to work with
+    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
+    Set pic = ws.Pictures("huhu") ' Change "Picture 1" to the name of your picture
+
+    ' Check if the picture exists
+    If Not pic Is Nothing Then
+        ' Unlock the aspect ratio
+        pic.LockAspectRatio = msoFalse
+    Else
+        MsgBox "Picture not found on the specified sheet."
+    End If
+End Sub
+
 Public Sub TestQr()
     ' Usage example:
     Dim inputString As String
@@ -164,7 +249,7 @@ Public Sub TestQr()
     Debug.Print "QR code generated and saved as " & outputPath
 End Sub
 
-Public Sub SortEntries()
+Private Sub SortEntries()
     Dim lSelectCache As Range
     Dim lColLetter As String
     lColLetter = ConvertColToLetter(COL_DATE)
@@ -185,7 +270,7 @@ Public Sub SortEntries()
     Application.ScreenUpdating = True
 End Sub
 
-Public Sub CopyExpenses()
+Private Sub CopyExpenses()
     Const MAX_COUNT As Long = 53
     Dim lCount As Long
     Dim lDate As Double
@@ -203,15 +288,11 @@ Public Sub CopyExpenses()
 '    Next i
 End Sub
 
-'Public Function IifLong(ByVal aExpression As Boolean, ByVal aTruePart As Long, ByVal aFalsePart As Long) As Long
-'    If aExpression Then IifLong = aTruePart Else IifLong = aFalsePart
-'End Function
-
-Public Function ConvertColToLetter(aColumn As Long) As String
+Private Function ConvertColToLetter(aColumn As Long) As String
     ConvertColToLetter = Chr$(64 + aColumn)
 End Function
 
-Public Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As Double
+Private Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As Double
     Dim lYear As Long
     Dim lMonth As Long
     Dim lSplit() As String

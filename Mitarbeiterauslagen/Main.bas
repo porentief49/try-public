@@ -1,4 +1,5 @@
-'2023-10-10 little code history ...
+'2023-10-15 GRR: basic features complete
+'2023-10-10 GRR: initial creation
 
 Option Explicit
 
@@ -142,13 +143,14 @@ Private Function EpcQrString(aSheet As Worksheet) As String
     l4_Id = "SCT"
     l5_BIC = "" 'optional
     l6_Receiver = Left$(aSheet.Cells(RPT_ROW_RECEIVER, RPT_COL_DATA).Value2, 60)
-    l7_IBAN = Replace$(aSheet.Cells(RPT_ROW_IBAN, RPT_COL_DATA).Value2, " ", vbNullString)
+    l7_IBAN = Replace$(Split(aSheet.Cells(RPT_ROW_IBAN, RPT_COL_DATA).Value2, ":")(1), " ", vbNullString) 'remove 'IBAN: ' header ...
     l8_Amount = "EUR" & Format$(aSheet.Cells(RPT_ROW_AMOUNT, RPT_COL_DATA).Value2, "0.00")
     l9_Code = ""
     l10_Ref = ""
     l11_Title = Left$(aSheet.Cells(RPT_ROW_HEADLINE, COL_HEADLINE).Value2, 140)
     l12_Comment = ""
-    EpcQrString = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title & NEW_LINE & l12_Comment
+    EpcQrString = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title ' & NEW_LINE & l12_Comment
+'    Debug.Print EpcQrString
 End Function
 
 Private Sub GenerateQRCode(inputString As String, outputPath As String) 'credit: https://chat.openai.com/share/4a3043e0-024f-499b-a270-3426e18e9f1a
@@ -217,6 +219,7 @@ End Sub
 '    outputPath = "C:\temp\QRCode.png"
 '    Call GenerateQRCode(Replace$(inputString, "|", "%0A"), outputPath)
 '    Debug.Print "QR code generated and saved as " & outputPath
+'    Debug.Print Replace$(inputString, "|", "%0A")
 'End Sub
 
 Private Sub FormatExpenses(aSheet As Worksheet, aRow As Long)

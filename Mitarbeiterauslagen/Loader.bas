@@ -1,5 +1,5 @@
-'2023-10-15 add rev. check, update only if required
-'2023-10-13 initial creation
+'2023-10-15 GRR: add rev. check, update only if required
+'2023-10-13 GRR: initial creation
 
 Option Explicit
 

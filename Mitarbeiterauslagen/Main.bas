@@ -18,7 +18,7 @@ Private Const COL_VENDOR As Long = 3
 Private Const COL_AMOUNT As Long = 4
 Private Const COL_COMMENT As Long = 5
 Private Const SHEET_EXPENSES As String = "Auslagen"
-Private Const SHEET_BALANCE As String = "Abrechnung"
+Private Const SHEET_REPORT As String = "Abrechnung"
 Private Const BAL_ROW_HEADLINE As Long = 1
 Private Const BAL_ROW_RECEIVER As Long = 3
 Private Const BAL_ROW_IBAN As Long = 6
@@ -51,7 +51,7 @@ Private Sub UpdateStatus(aStatus As String, aOk As Boolean)
     Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
 End Sub
 
-Public Sub CreateBalance()
+Public Sub ClearMonth()
     Const BALANCE_TITLE As String = "Abrechnung Mitarbeiterauslagen "
     Dim lBalance As Double
     Dim lTimeRange As String
@@ -83,15 +83,16 @@ Public Sub CreateReport()
     lTimeRange = Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) < 0.004 Then
         Application.ScreenUpdating = False
-        Set lReportSheet = Sheets(SHEET_BALANCE)
+        Set lReportSheet = Sheets(SHEET_REPORT)
         
         'generate QR code
         lQrString = EpcQrString(lReportSheet)
         Call GenerateQRCode(lQrString, QR_FILE_PATH)
         
         'place QR code on sheet
+        Call LoadAndDisplayQrCode(QR_FILE_PATH, SHEET_REPORT)
         
-        
+        'export PDF
         lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"
         Call lReportSheet.ExportAsFixedFormat(xlTypePDF, lFileName, xlQualityStandard, True, False, , , True)
         Call UpdateStatus("OK - report created for " & lTimeRange, True)
@@ -157,25 +158,19 @@ Private Sub GenerateQRCode(inputString As String, outputPath As String) 'credit:
     Set xmlHttp = Nothing
 End Sub
 
-Public Sub LoadAndDisplayImage()
-'    Const IMAGE_WIDTH_HEIGHT As Double = 100
+Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As String)
     Const IMAGE_HEIGHT_CORRECTION As Double = 1.118 ' weird - Excel will display squares a little taller than they should be
     Const IMAGE_COL_MARGIN As Double = 5
     Const IMAGE_NAME As String = "QrCode"
-    Dim imagePath As String
     Dim ws As Worksheet
     Dim pic As Picture
     Dim shp As Shape
     Dim lHeight As Double
     Dim lWidth As Double
     Dim lLeft As Double
-
-    ' Specify the path to your PNG image file
-    imagePath = "C:\temp\QRCode.png" ' Replace with the actual file path
-
-    ' Set the worksheet where you want to display the image
-    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
-
+    Set ws = ThisWorkbook.Sheets(aSheet)
+    
+    'delete old QR code
     For Each shp In ws.Shapes
         If shp.Name = IMAGE_NAME Then
             shp.Delete
@@ -183,73 +178,50 @@ Public Sub LoadAndDisplayImage()
         End If
     Next shp
 
-    ' Create a new Picture object and load the image
-    Set pic = ws.Pictures.Insert(imagePath)
+    'load & place new QR code
+    Set pic = ws.Pictures.Insert(aFile)
     pic.Name = IMAGE_NAME
-    
     ActiveSheet.Shapes.Range(Array(IMAGE_NAME)).Select
     Selection.ShapeRange.LockAspectRatio = msoFalse
-    
     lHeight = ws.Cells(8, 3).Top - ws.Cells(3, 3).Top
     lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
     lLeft = (ws.Cells(3, 2).Left - ws.Cells(3, 1).Left) / 2 - lWidth / 2
-    ' Position and resize the image as needed
     With pic
-        .Left = lLeft 'ws.Cells(3, 3).Left - lWidth - IMAGE_COL_MARGIN ' Change the coordinates as needed
+        .Left = lLeft
         .Top = ws.Cells(3, 3).Top
         .Locked = False
         .Width = lWidth
         .Height = lHeight
-'        .Width = 100
-'        .Height = 100 * 1.118
-'        .LockAspectRatio = msoFalse
-        ' You can set .Width and .Height properties to resize the image
-'        .Name = IMAGE_NAME
     End With
-'    Selection.ShapeRange.ScaleWidth 1.4423076923, msoFalse, msoScaleFromTopLeft
-'    Selection.ShapeRange.ScaleHeight 2.5089445438, msoFalse, msoScaleFromTopLeft
-
-'    With pic
-'        .Left = ws.Cells(1, 1).Left ' Change the coordinates as needed
-'        .Top = ws.Cells(1, 1).Top
-'        .Locked = False
-'        .LockAspectRatio = msoFalse
-        ' You can set .Width and .Height properties to resize the image
-'        .Name = "huhu"
-'    End With
-    
-    
-    
-    ' Clean up
     Set pic = Nothing
 End Sub
 
-Sub UnlockAspectRatioOfPicture()
-    Dim ws As Worksheet
-    Dim pic As Picture
+'Sub UnlockAspectRatioOfPicture()
+'    Dim ws As Worksheet
+'    Dim pic As Picture
+'
+'    ' Set the worksheet and the picture you want to work with
+'    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
+'    Set pic = ws.Pictures("huhu") ' Change "Picture 1" to the name of your picture
+'
+'    ' Check if the picture exists
+'    If Not pic Is Nothing Then
+'        ' Unlock the aspect ratio
+'        pic.LockAspectRatio = msoFalse
+'    Else
+'        MsgBox "Picture not found on the specified sheet."
+'    End If
+'End Sub
 
-    ' Set the worksheet and the picture you want to work with
-    Set ws = ThisWorkbook.Sheets("Abrechnung") ' Change "Sheet1" to your target sheet
-    Set pic = ws.Pictures("huhu") ' Change "Picture 1" to the name of your picture
-
-    ' Check if the picture exists
-    If Not pic Is Nothing Then
-        ' Unlock the aspect ratio
-        pic.LockAspectRatio = msoFalse
-    Else
-        MsgBox "Picture not found on the specified sheet."
-    End If
-End Sub
-
-Public Sub TestQr()
-    ' Usage example:
-    Dim inputString As String
-    Dim outputPath As String
-    inputString = "BCD|002|1|SCT||Paul|DE30702501500027525005|EUR1.00||Zweck"
-    outputPath = "C:\temp\QRCode.png"
-    Call GenerateQRCode(Replace$(inputString, "|", "%0A"), outputPath)
-    Debug.Print "QR code generated and saved as " & outputPath
-End Sub
+'Public Sub TestQr()
+'    ' Usage example:
+'    Dim inputString As String
+'    Dim outputPath As String
+'    inputString = "BCD|002|1|SCT||Paul|DE30702501500027525005|EUR1.00||Zweck"
+'    outputPath = "C:\temp\QRCode.png"
+'    Call GenerateQRCode(Replace$(inputString, "|", "%0A"), outputPath)
+'    Debug.Print "QR code generated and saved as " & outputPath
+'End Sub
 
 Private Sub SortEntries()
     Dim lSelectCache As Range

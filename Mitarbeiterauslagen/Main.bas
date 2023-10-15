@@ -20,12 +20,13 @@ Private Const COL_COMMENT As Long = 5
 Private Const COL_HEADLINE As Long = 1
 Private Const SHEET_EXPENSES As String = "Auslagen"
 Private Const SHEET_REPORT As String = "Abrechnung"
-Private Const BAL_ROW_HEADLINE As Long = 1
-Private Const BAL_ROW_RECEIVER As Long = 3
-Private Const BAL_ROW_IBAN As Long = 6
-Private Const BAL_ROW_AMOUNT As Long = 7
-Private Const BAL_ROW_DATA_START As Long = 10
-Private Const BAL_COL_DATA As Long = 2
+Private Const RPT_ROW_HEADLINE As Long = 1
+Private Const RPT_ROW_RECEIVER As Long = 3
+Private Const RPT_ROW_IBAN As Long = 6
+Private Const RPT_ROW_AMOUNT As Long = 7
+Private Const RPT_ROW_DATA_START As Long = 10
+Private Const RPT_ROW_DATA_END As Long = 62
+Private Const RPT_COL_DATA As Long = 2
 
 Private Function FindFreeRow(aSheet As Worksheet) As Long
     Const EMPTY_ROW_THRESHOLD As Long = 100
@@ -131,12 +132,12 @@ Private Function EpcQrString(aSheet As Worksheet) As String
     l3_Encoding = "1"
     l4_Id = "SCT"
     l5_BIC = "" 'optional
-    l6_Receiver = Left$(aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Value2, 60)
-    l7_IBAN = Replace$(aSheet.Cells(BAL_ROW_IBAN, BAL_COL_DATA).Value2, " ", vbNullString)
-    l8_Amount = "EUR" & Format$(aSheet.Cells(BAL_ROW_AMOUNT, BAL_COL_DATA).Value2, "0.00")
+    l6_Receiver = Left$(aSheet.Cells(RPT_ROW_RECEIVER, RPT_COL_DATA).Value2, 60)
+    l7_IBAN = Replace$(aSheet.Cells(RPT_ROW_IBAN, RPT_COL_DATA).Value2, " ", vbNullString)
+    l8_Amount = "EUR" & Format$(aSheet.Cells(RPT_ROW_AMOUNT, RPT_COL_DATA).Value2, "0.00")
     l9_Code = ""
     l10_Ref = ""
-    l11_Title = Left$(aSheet.Cells(BAL_ROW_HEADLINE, COL_HEADLINE).Value2, 140)
+    l11_Title = Left$(aSheet.Cells(RPT_ROW_HEADLINE, COL_HEADLINE).Value2, 140)
     l12_Comment = ""
     EpcQrString = l1_ServiceTag & NEW_LINE & l2_Version & NEW_LINE & l3_Encoding & NEW_LINE & l4_Id & NEW_LINE & l5_BIC & NEW_LINE & l6_Receiver & NEW_LINE & l7_IBAN & NEW_LINE & l8_Amount & NEW_LINE & l9_Code & NEW_LINE & l10_Ref & NEW_LINE & l11_Title & NEW_LINE & l12_Comment
 End Function
@@ -186,12 +187,12 @@ Public Sub LoadAndDisplayQrCode(aFile As String, aSheet As Worksheet)
     Set pic = aSheet.Pictures.Insert(aFile)
     pic.Name = IMAGE_NAME
     aSheet.Shapes.Range(Array(IMAGE_NAME)).LockAspectRatio = msoFalse
-    lHeight = aSheet.Cells(8, BAL_COL_DATA).Top - aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Top
+    lHeight = aSheet.Cells(8, RPT_COL_DATA).Top - aSheet.Cells(RPT_ROW_RECEIVER, RPT_COL_DATA).Top
     lWidth = lHeight / IMAGE_HEIGHT_CORRECTION
-    lLeft = (aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Left - aSheet.Cells(BAL_ROW_RECEIVER, COL_HEADLINE).Left) / 2 - lWidth / 2
+    lLeft = (aSheet.Cells(RPT_ROW_RECEIVER, RPT_COL_DATA).Left - aSheet.Cells(RPT_ROW_RECEIVER, COL_HEADLINE).Left) / 2 - lWidth / 2
     With pic
         .Left = lLeft
-        .Top = aSheet.Cells(BAL_ROW_RECEIVER, BAL_COL_DATA).Top
+        .Top = aSheet.Cells(RPT_ROW_RECEIVER, RPT_COL_DATA).Top
         .Locked = False
         .Width = lWidth
         .Height = lHeight
@@ -241,11 +242,34 @@ Private Sub SortEntries(aSheet As Worksheet)
     End With
 End Sub
 
-Private Sub CopyExpenses()
-    Const MAX_COUNT As Long = 53
-    Dim lCount As Long
-    Dim lDate As Double
+Private Sub CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Worksheet)
+    Dim lRowReport As Long
     Dim lFrom As Double
+    Dim lTo As Double
+    Dim lLastRowExpenses As Long
+    Dim i As Long
+    
+'    Dim lColLetterFrom As String
+'    Dim lColLetterTo As String
+'    With aSheet.Cells(EXP_ROW_STATUS, COL_STATUS)
+'        .Value2 = aStatus
+'        .Font.Color = IIf(aOk, &HAA00&, &HCC&)
+'    End With
+'    lColLetterFrom = ConvertColToLetter(COL_DATE)
+'    lColLetterTo = ConvertColToLetter(COL_AMOUNT)
+'    aSheet.Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
+    Call aReportSheet.Range(CStr(EXP_ROW_DATA_FIRST) & ":" & CStr(EXP_ROW_DATA_LAST)).Clear
+    lRowReport = EXP_ROW_DATA_FIRST
+    lFrom = aExpensesSheet.Cells(EXP_ROW_RANGE_FROM, COL_DATE).Value2
+    lTo = aExpensesSheet.Cells(EXP_ROW_RANGE_TO, COL_DATE).Value2
+    lLastRowExpenses = FindFreeRow(aExpensesSheet)
+    For i = EXP_ROW_DATA_FIRST To lLastRowExpenses
+    
+    Next i
+'    Const MAX_COUNT As Long = 53
+'    Dim lCount As Long
+'    Dim lDate As Double
+'    Dim lFrom As Double
 '    dim
     
 '    Dim lTo As Double

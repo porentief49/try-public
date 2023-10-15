@@ -54,16 +54,15 @@ Public Sub UpdateAll()
                                 End If
                             End If
                             If lDoWeUpdate = YeahGoForIt Then
-                                lResult = UpdateModule(lComponent.Name, lGitHubCode)
+                                lResult = UpdateModule(lComponent, lGitHubCode)
                                 If LenB(lResult) = 0 Then
-                                    Debug.Print "Module '" & lComponent.Name; "' successfully updated"
-                                    Debug.Print "    Rev Date: " & GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
+                                    Debug.Print "Module '" & lComponent.Name; "' successfully updated with rev. " & lGitHubRevDate
                                 Else
                                     Debug.Print "UpdateModule did not work: " & lResult
                                 End If
                             End If
                         Else
-                                Debug.Print "Module '" & lComponent.Name; "' already up-to-date"
+'                            Debug.Print "Module '" & lComponent.Name; "' already up-to-date"
                         End If
                     Else
                         Debug.Print "ReadGitHubRaw worked, but no code in module"
@@ -128,7 +127,7 @@ Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As Str
 End Function
 
 
-Private Function ReadGitHubRaw(aUrl As String, ByRef aCodeModule As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
+Private Function ReadGitHubRaw(aUrl As String, ByRef aCode As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
     
     ' this is the link format needed: https://drive.google.com/uc?id=YOUR_FILE_ID"
     ' when you share in google drive, you will get this link: https://drive.google.com/file/d/18D2GscIRnO286zlWqNTSL06jcMgtTeon/view?usp=sharing
@@ -141,7 +140,7 @@ Private Function ReadGitHubRaw(aUrl As String, ByRef aCodeModule As String) As S
     Call xmlHttp.Open("GET", aUrl, False)  ' Send a GET request to the Google Drive file
     Call xmlHttp.send
     If xmlHttp.Status = 200 Then ' Check if the request was successful
-        aCodeModule = xmlHttp.responseText ' Read the response text (contents of the file)
+        aCode = xmlHttp.responseText ' Read the response text (contents of the file)
 '        MsgBox fileContents ' Display the file contents (you can modify this part as needed)
 '        Open "c:\temp\download.txt" For Output As #1
 '        Print #1, fileContents
@@ -159,20 +158,20 @@ hell:
 End Function
 
 
-Private Function UpdateModule(aModuleName As String, aCode As String) As String
+Private Function UpdateModule(aComponent As VBComponent, aCode As String) As String
 '    Dim lFso As New FileSystemObject
 '    Dim lStream As TextStream
-    Dim lProject As VBProject
-    Dim lComponent As VBComponent
+'    Dim lProject As VBProject
+'    Dim lComponent As VBComponent
     Dim lModule As CodeModule
 '    Dim lFile As String
 '    Dim lLines As String
 '    Dim lModuleName As String
     On Error GoTo hell
 '    lModuleName = Split(lFso.GetFileName(aFile), ".")(0)
-    Set lProject = ThisWorkbook.VBProject
-    Set lComponent = lProject.VBComponents(aModuleName)
-    Set lModule = lComponent.CodeModule
+'    Set lProject = ThisWorkbook.VBProject
+'    Set lComponent = lProject.VBComponents(aModuleName)
+    Set lModule = aComponent.CodeModule
 '    lFile = "C:\temp\" & lModuleName & ".txt"
 '    Set lStream = lFso.OpenTextFile(aFile)
 '    lLines = lStream.ReadAll

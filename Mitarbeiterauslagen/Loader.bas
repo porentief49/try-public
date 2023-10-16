@@ -6,6 +6,7 @@ Option Explicit
 Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
 
 Private Const LOCAL_REPO_BASE_PATH As String = "C:\MyData\Sandboxes\vba-code-vault\"
+Private Const LOCAL_REPO_BASE_PATH_FILE As String = "vba-code-vault.txt"
 Private Const GITHUB_RAW_BASE_URL As String = "https://raw.githubusercontent.com/porentief49/vba-code-vault/main/" ' full path like: https://raw.githubusercontent.com/porentief49/vba-code-vault/main/Mitarbeiterauslagen/Main.bas
 
 Private Enum eDoWeUpdate
@@ -43,6 +44,19 @@ Public Sub ExportIfLocalGitRepoPresent()
     End If
 End Sub
 
+Private Function GetLocalRepoPath()
+    Dim lFso As New FileSystemObject
+    Dim lFile As String
+    Static lDone As Boolean
+    Static lRepoPath As String
+    If Not lDone Then
+        lFile = Application.ActiveWorkbook.Path & "\" & LOCAL_REPO_BASE_PATH_FILE
+        If lFso.FileExists(lFile) Then lRepoPath = Trim$(lFso.OpenTextFile(lFile).ReadAll)
+        lDone = True
+    End If
+    GetLocalRepoPath = lRepoPath
+End Function
+
 Public Sub UpdateAll()
     Dim lComponent As VBComponent
     Dim lResult As String
@@ -50,11 +64,17 @@ Public Sub UpdateAll()
     Dim lThisRevDate As String
     Dim lGitHubRevDate As String
     Dim lDoWeUpdate As eDoWeUpdate
+'    Dim lLocalPath As String
+'    lLocalPath = GetLocalRepoPath
     lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type <= 2 Then
 '            If lComponent.Name <> "Loader" Then
-                lResult = ReadGitHubRaw(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
+                If LenB(GetLocalRepoPath) = 0 Then
+                    lResult = ReadFromGitHub(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
+                Else
+                    lResult = ReadFromLocal(GetLocalRepoPath & GetWorkbookName & "\" & GetFileName(lComponent), lGitHubCode)
+                End If
                 If LenB(lResult) = 0 Then
                     If LenB(lGitHubCode) > 0 Then
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
@@ -136,7 +156,7 @@ Private Function ReplaceAny(aIn As String, aReplaceChars As String, aWith As Str
     ReplaceAny = lResult
 End Function
 
-Private Function ReadGitHubRaw(aUrl As String, ByRef aCode As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
+Private Function ReadFromGitHub(aUrl As String, ByRef aCode As String) As String 'credit: https://chat.openai.com/share/d3dd39f3-abb9-4233-aa19-7c3cef294b50
     Dim xmlHttp As Object
     On Error GoTo hell
     Set xmlHttp = CreateObject("MSXML2.ServerXMLHTTP")
@@ -144,15 +164,24 @@ Private Function ReadGitHubRaw(aUrl As String, ByRef aCode As String) As String 
     Call xmlHttp.send
     If xmlHttp.Status = 200 Then ' Check if the request was successful
         aCode = xmlHttp.responseText ' Read the response text (contents of the file)
-        ReadGitHubRaw = vbNullString
+        ReadFromGitHub = vbNullString
     Else
-        ReadGitHubRaw = "HTTP Error: " & xmlHttp.Status & " - " & xmlHttp.statusText ' Handle errors (e.g., file not found)
+        ReadFromGitHub = "HTTP Error: " & xmlHttp.Status & " - " & xmlHttp.statusText ' Handle errors (e.g., file not found)
     End If
     Set xmlHttp = Nothing ' Clean up
     Exit Function
 hell:
     Set xmlHttp = Nothing ' Clean up
-    ReadGitHubRaw = "Error: " & Err.Description
+    ReadFromGitHub = "Error: " & Err.Description
+End Function
+
+Private Function ReadFromLocal(aFilePath As String, ByRef aCode As String) As String
+    Dim lFso As New FileSystemObject
+    On Error GoTo hell
+    ReadFromLocal = lFso.OpenTextFile(aFilePath).ReadAll
+    Exit Function
+hell:
+    ReadFromLocal = "Error: " & Err.Description
 End Function
 
 Private Function UpdateModule(aComponent As VBComponent, aCode As String) As String
@@ -170,6 +199,47 @@ End Function
 Private Function IsShiftKeyPressed() As Boolean 'credit: https://chat.openai.com/share/2c52b886-2200-41a9-93b1-40503edf8baa
     IsShiftKeyPressed = (GetAsyncKeyState(16) And &H8000) <> 0
 End Function
+
+Public Sub huhu()
+    Dim lFso As New FileSystemObject
+    Dim lFolder As String
+    Dim lFile As String
+    lFolder = Application.ActiveWorkbook.Path
+'    For Each lFile In lFso.GetFolder(lFolder).Files
+'        Debug.Print lFile.Name
+'    Next lFile
+    lFile = lFolder & "\vba-code-vault.lnk"
+    
+    Debug.Print ParseShortcut(lFile)
+    
+    
+    Dim lString As String
+    lString = lFso.OpenTextFile(lFile).ReadAll
+    Debug.Print lString
+    
+End Sub
+
+Function ParseShortcut(lnkPath As String) As String 'credit: https://chat.openai.com/share/7c08562e-7d60-430a-a5b6-3e9484677d87
+    Dim objShell As Object
+    Dim objShortcut As Object
+    
+    ' Create a Shell object
+    Set objShell = CreateObject("WScript.Shell")
+    
+    ' Create a Shortcut object
+    Set objShortcut = objShell.CreateShortcut(lnkPath)
+    
+    ' Extract information from the shortcut
+    ParseShortcut = "Target Path: " & objShortcut.TargetPath & vbCrLf & _
+                   "Arguments: " & objShortcut.Arguments & vbCrLf & _
+                   "Working Directory: " & objShortcut.WorkingDirectory & vbCrLf & _
+                   "Icon Location: " & objShortcut.IconLocation
+    
+    ' Clean up objects
+    Set objShortcut = Nothing
+    Set objShell = Nothing
+End Function
+
 
 
 

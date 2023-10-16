@@ -1,3 +1,4 @@
+'2023-10-16 GRR: add update from local repo in developer mode
 '2023-10-15 GRR: add rev. check, update only if required
 '2023-10-13 GRR: initial creation
 
@@ -64,26 +65,27 @@ Public Sub UpdateAll()
     Dim lThisRevDate As String
     Dim lGitHubRevDate As String
     Dim lDoWeUpdate As eDoWeUpdate
-'    Dim lLocalPath As String
-'    lLocalPath = GetLocalRepoPath
+    Dim lReadFromLocal As Boolean
+    Dim lLocalPath As String
+    lLocalPath = GetLocalRepoPath
     lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type <= 2 Then
 '            If lComponent.Name <> "Loader" Then
-                If LenB(GetLocalRepoPath) = 0 Then
+                If LenB(lLocalPath) = 0 Then
                     lResult = ReadFromGitHub(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
                 Else
-                    lResult = ReadFromLocal(GetLocalRepoPath & GetWorkbookName & "\" & GetFileName(lComponent), lGitHubCode)
+                    lResult = ReadFromLocal(lLocalPath & GetWorkbookName & "\" & GetFileName(lComponent), lGitHubCode)
                 End If
                 If LenB(lResult) = 0 Then
                     If LenB(lGitHubCode) > 0 Then
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         lGitHubRevDate = GetRevDate(lGitHubCode)
-                        If lGitHubRevDate > lThisRevDate Then
-                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox("New version found on GitHub - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
+                        If lGitHubRevDate <> lThisRevDate Then
+                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox("Different version found " & IIf(lReadFromLocal, "in local repo", "on GitHub") & " - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent, lGitHubCode)
-                                Call LogMessage(lComponent, IIf(LenB(lResult) = 0, "successfully updated with rev. " & lGitHubRevDate, "update failed - " & lResult))
+                                Call LogMessage(lComponent, IIf(LenB(lResult) = 0, "successfully updated from " & IIf(lReadFromLocal, "local repo", "GitHub") & " with rev. " & lGitHubRevDate, "update failed - " & lResult))
                             Else
                                 Call LogMessage(lComponent, "newer version available (" & lGitHubRevDate & "), but update declined")
                             End If
@@ -91,10 +93,10 @@ Public Sub UpdateAll()
                             Call LogMessage(lComponent, "already up-to-date (rev. " & lGitHubRevDate & ")")
                         End If
                     Else
-                        Call LogMessage(lComponent, "GitHub read worked, but code module is empty - not updated")
+                        Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & " read worked, but code module is empty - not updated")
                     End If
                 Else
-                    Call LogMessage(lComponent, "GitHub read failed - " & lResult)
+                    Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & " read failed - " & lResult)
                 End If
 '            End If
         End If
@@ -240,6 +242,7 @@ Function ParseShortcut(lnkPath As String) As String 'credit: https://chat.openai
     Set objShortcut = Nothing
     Set objShell = Nothing
 End Function
+
 
 
 

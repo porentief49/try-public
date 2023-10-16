@@ -3,6 +3,8 @@
 
 Option Explicit
 
+Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As Long) As Integer
+
 Private Const EXP_ROW_TIMERANGE As Long = 1
 Private Const EXP_ROW_RANGE_FROM As Long = 5
 Private Const EXP_ROW_BALANCE_MONTH As Long = 5
@@ -30,31 +32,6 @@ Private Const RPT_ROW_DATA_END As Long = 62
 Private Const RPT_COL_DATA As Long = 2
 Private Const TWO_SECONDS As Double = 0.00002
 Private Const REPORT_TITLE As String = "Abrechnung Mitarbeiterauslagen "
-
-Private Function FindFreeRow(aSheet As Worksheet) As Long
-    Const EMPTY_ROW_THRESHOLD As Long = 100
-    Dim lRow As Long
-    Dim lEmptyCount As Long
-    lRow = EXP_ROW_DATA_FIRST
-    lEmptyCount = 0
-    Do While (lEmptyCount < EMPTY_ROW_THRESHOLD) And (lRow < EXP_ROW_DATA_LAST) '@@@ this is not perfectly correct, because close to the end, it will start overwriting rows
-        lEmptyCount = IIf((Len(Trim$(aSheet.Cells(lRow, COL_DATE).Value2) & Trim$(aSheet.Cells(lRow, COL_EXPENSE).Value2) & Trim$(aSheet.Cells(lRow, COL_VENDOR).Value2) & Trim$(aSheet.Cells(lRow, COL_AMOUNT).Value2) & Trim$(aSheet.Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
-        lRow = lRow + 1
-    Loop
-    FindFreeRow = lRow - EMPTY_ROW_THRESHOLD
-End Function
-
-Private Sub UpdateStatus(aStatus As String, aOk As Boolean, aSheet As Worksheet)
-    Dim lColLetterFrom As String
-    Dim lColLetterTo As String
-    With aSheet.Cells(EXP_ROW_STATUS, COL_STATUS)
-        .Value2 = aStatus
-        .Font.Color = IIf(aOk, &HAA00&, &HCC&)
-    End With
-    lColLetterFrom = ConvertColToLetter(COL_STATUS)
-    lColLetterTo = ConvertColToLetter(COL_COMMENT)
-    aSheet.Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
-End Sub
 
 Public Sub ClearMonth()
     Dim lBalance As Double
@@ -121,6 +98,31 @@ Public Sub CreateReport()
 hell:
     Application.ScreenUpdating = True
     Err.Raise (Err.Number)
+End Sub
+
+Private Function FindFreeRow(aSheet As Worksheet) As Long
+    Const EMPTY_ROW_THRESHOLD As Long = 100
+    Dim lRow As Long
+    Dim lEmptyCount As Long
+    lRow = EXP_ROW_DATA_FIRST
+    lEmptyCount = 0
+    Do While (lEmptyCount < EMPTY_ROW_THRESHOLD) And (lRow < EXP_ROW_DATA_LAST) '@@@ this is not perfectly correct, because close to the end, it will start overwriting rows
+        lEmptyCount = IIf((Len(Trim$(aSheet.Cells(lRow, COL_DATE).Value2) & Trim$(aSheet.Cells(lRow, COL_EXPENSE).Value2) & Trim$(aSheet.Cells(lRow, COL_VENDOR).Value2) & Trim$(aSheet.Cells(lRow, COL_AMOUNT).Value2) & Trim$(aSheet.Cells(lRow, COL_COMMENT).Value2)) > 0), 0, lEmptyCount + 1)
+        lRow = lRow + 1
+    Loop
+    FindFreeRow = lRow - EMPTY_ROW_THRESHOLD
+End Function
+
+Private Sub UpdateStatus(aStatus As String, aOk As Boolean, aSheet As Worksheet)
+    Dim lColLetterFrom As String
+    Dim lColLetterTo As String
+    With aSheet.Cells(EXP_ROW_STATUS, COL_STATUS)
+        .Value2 = aStatus
+        .Font.Color = IIf(aOk, &HAA00&, &HCC&)
+    End With
+    lColLetterFrom = ConvertColToLetter(COL_STATUS)
+    lColLetterTo = ConvertColToLetter(COL_COMMENT)
+    aSheet.Range(lColLetterFrom & CStr(EXP_ROW_STATUS) & ":" & lColLetterTo & CStr(EXP_ROW_STATUS)).Interior.Color = IIf(aOk, &HDDFFDD, &HDDDDFF)
 End Sub
 
 Private Function EpcQrString(aSheet As Worksheet) As String
@@ -309,6 +311,53 @@ Private Function DateFromTo(aKey As String, Optional aFrom As Boolean = True) As
         DateFromTo = DateSerial(year(lNextMonth), month(lNextMonth), 1) - TWO_SECONDS '-1 would get the correct day, but midnight of that. In case a date has a time with it that's later, that would fall out. So creating "a few seconds before the next 1st" date/time stamp here ...
     End If
 End Function
+
+Private Function IsShiftKeyPressed() As Boolean 'credit: https://chat.openai.com/share/2c52b886-2200-41a9-93b1-40503edf8baa
+    IsShiftKeyPressed = (GetAsyncKeyState(16) And &H8000) <> 0
+End Function
+
+Public Sub huhu()
+    Dim lFso As New FileSystemObject
+    Dim lFolder As String
+    Dim lFile As String
+    lFolder = Application.ActiveWorkbook.Path
+'    For Each lFile In lFso.GetFolder(lFolder).Files
+'        Debug.Print lFile.Name
+'    Next lFile
+    lFile = lFolder & "\vba-code-vault.lnk"
+    
+    Debug.Print ParseShortcut(lFile)
+    
+    
+    Dim lString As String
+    lString = lFso.OpenTextFile(lFile).ReadAll
+    Debug.Print lString
+    
+End Sub
+
+Function ParseShortcut(lnkPath As String) As String 'credit: https://chat.openai.com/share/7c08562e-7d60-430a-a5b6-3e9484677d87
+    Dim objShell As Object
+    Dim objShortcut As Object
+    
+    ' Create a Shell object
+    Set objShell = CreateObject("WScript.Shell")
+    
+    ' Create a Shortcut object
+    Set objShortcut = objShell.CreateShortcut(lnkPath)
+    
+    ' Extract information from the shortcut
+    ParseShortcut = "Target Path: " & objShortcut.TargetPath & vbCrLf & _
+                   "Arguments: " & objShortcut.Arguments & vbCrLf & _
+                   "Working Directory: " & objShortcut.WorkingDirectory & vbCrLf & _
+                   "Icon Location: " & objShortcut.IconLocation
+    
+    ' Clean up objects
+    Set objShortcut = Nothing
+    Set objShell = Nothing
+End Function
+
+
+
 
 
 

@@ -26,7 +26,7 @@ Public Sub UpdateAll()
     Dim lReadFromLocal As Boolean
     Dim lLocalPath As String
     lLocalPath = GetLocalRepoPath
-    lReadFromLocal = (LenB(lLocalPath) = 0)
+    lReadFromLocal = (LenB(lLocalPath) > 0)
     lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type <= 2 Then

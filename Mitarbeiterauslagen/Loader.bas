@@ -178,7 +178,8 @@ End Function
 Private Function ReadFromLocal(aFilePath As String, ByRef aCode As String) As String
     Dim lFso As New FileSystemObject
     On Error GoTo hell
-    ReadFromLocal = lFso.OpenTextFile(aFilePath).ReadAll
+    aCode = lFso.OpenTextFile(aFilePath).ReadAll
+    ReadFromLocal = vbNullString
     Exit Function
 hell:
     ReadFromLocal = "Error: " & Err.Description

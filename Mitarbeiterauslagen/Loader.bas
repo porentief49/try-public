@@ -40,21 +40,21 @@ Public Sub UpdateAll()
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         lGitHubRevDate = GetRevDate(lGitHubCode)
                         If lGitHubRevDate <> lThisRevDate Then
-                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox("Different version found " & IIf(lReadFromLocal, "in local repo", "on GitHub") & " - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
+                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox(IIf(lReadFromLocal, "Local repo", "GitHub") & ": different version found - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent, lGitHubCode)
-                                Call LogMessage(lComponent, IIf(LenB(lResult) = 0, "successfully updated from " & IIf(lReadFromLocal, "local repo", "GitHub") & " with rev. " & lGitHubRevDate, "update failed - " & lResult))
+                                Call LogMessage(lComponent, IIf(LenB(lResult) = 0, IIf(lReadFromLocal, "Local repo", "GitHub") & ": successfully updated with rev. " & lGitHubRevDate, "update failed - " & lResult))
                             Else
-                                Call LogMessage(lComponent, "newer version available (" & lGitHubRevDate & "), but update declined")
+                                Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & ": newer version available (" & lGitHubRevDate & "), but update declined")
                             End If
                         Else
-                            Call LogMessage(lComponent, "already up-to-date (rev. " & lGitHubRevDate & ")")
+                            Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & ": already up-to-date (rev. " & lGitHubRevDate & ")")
                         End If
                     Else
-                        Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & " read worked, but code module is empty - not updated")
+                        Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & ": read worked, but code module is empty - not updated")
                     End If
                 Else
-                    Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & " read failed - " & lResult)
+                    Call LogMessage(lComponent, IIf(lReadFromLocal, "Local repo", "GitHub") & ": read failed - " & lResult)
                 End If
 '            End If
         End If
@@ -82,7 +82,7 @@ Public Sub ExportIfLocalGitRepoPresent()
     lLocalPath = GetLocalRepoPath
     If LenB(lLocalPath) > 0 Then
         Call ExportAll(lLocalPath)
-        Debug.Print "all sheets exported"
+        Debug.Print "Local Repo: all sheets exported"
     End If
 End Sub
 

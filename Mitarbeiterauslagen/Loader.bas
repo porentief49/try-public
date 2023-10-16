@@ -26,14 +26,15 @@ Public Sub UpdateAll()
     Dim lReadFromLocal As Boolean
     Dim lLocalPath As String
     lLocalPath = GetLocalRepoPath
+    lReadFromLocal = (LenB(lLocalPath) = 0)
     lDoWeUpdate = WhatDoIKnow
     For Each lComponent In ThisWorkbook.VBProject.VBComponents
         If lComponent.Type <= 2 Then
 '            If lComponent.Name <> "Loader" Then
-                If LenB(lLocalPath) > 0 Then
-                    lResult = ReadFromGitHub(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
-                Else
+                If lReadFromLocal Then
                     lResult = ReadFromLocal(lLocalPath & GetWorkbookName & "\" & GetFileName(lComponent), lGitHubCode)
+                Else
+                    lResult = ReadFromGitHub(GITHUB_RAW_BASE_URL & GetWorkbookName & "/" & GetFileName(lComponent), lGitHubCode)
                 End If
                 If LenB(lResult) = 0 Then
                     If LenB(lGitHubCode) > 0 Then

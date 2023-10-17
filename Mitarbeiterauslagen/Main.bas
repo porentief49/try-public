@@ -1,3 +1,4 @@
+'2023-10-17 GRR: ready for prime time
 '2023-10-15 GRR: basic features complete
 '2023-10-10 GRR: initial creation
 

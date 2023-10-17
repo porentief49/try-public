@@ -1,3 +1,4 @@
+'2023-10-17 GRR: ready for prime time
 '2023-10-16 GRR: add update from local repo in developer mode
 '2023-10-15 GRR: add rev. check, update only if required
 '2023-10-13 GRR: initial creation

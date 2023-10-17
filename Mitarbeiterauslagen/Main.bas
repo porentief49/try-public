@@ -34,26 +34,48 @@ Private Const TWO_SECONDS As Double = 0.00002
 Private Const REPORT_TITLE As String = "Abrechnung Mitarbeiterauslagen "
 
 Public Sub ClearMonth()
-    Dim lBalance As Double
-    Dim lTimeRange As String
+    Dim lFreeRow As Long
     Dim lRow As Long
+    Dim i As Long
+    Dim lTitle As String
+    Dim lBalance As Double
     Dim lExpensesSheet As Worksheet
+    Dim lTimeRange As String
     Set lExpensesSheet = Sheets(SHEET_EXPENSES)
+    Application.ScreenUpdating = False
+'    Dim lTitleLength As String
+    lFreeRow = FindFreeRow(lExpensesSheet)
+    lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
+    lTitle = REPORT_TITLE & lTimeRange
+'    lTitleLength = Len(lTitle)
+    lRow = lFreeRow 'until we learn better
+    For i = EXP_ROW_DATA_FIRST To lFreeRow
+        If lExpensesSheet.Cells(i, COL_EXPENSE).Value2 = lTitle Then
+            lRow = i
+            Exit For
+        End If
+    Next i
+    lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = 0 'clear previous balance
+    ' ---> now Excel will (hopefully) recalculate
     lBalance = lExpensesSheet.Cells(EXP_ROW_BALANCE_MONTH, COL_AMOUNT).Value2
-    If Abs(lBalance) > 0.004 Then
-        Application.ScreenUpdating = False
-        lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
-        Call SortEntries(lExpensesSheet)
-        lRow = FindFreeRow(lExpensesSheet)
-        lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False) - TWO_SECONDS ' 2s before the "close to midnight date used as the end term - will make sure this is always sorted as the last entry per month
-        lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = REPORT_TITLE & lTimeRange
-        lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
-        Call FormatExpenses(lExpensesSheet, lRow)
-        Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
-        Application.ScreenUpdating = True
-    Else
-        Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False, lExpensesSheet)
-    End If
+    lExpensesSheet.Cells(lRow, COL_DATE).Value2 = DateFromTo(lTimeRange, False) - TWO_SECONDS ' 2s before the "close to midnight date used as the end term - will make sure this is always sorted as the last entry per month
+    lExpensesSheet.Cells(lRow, COL_EXPENSE).Value2 = REPORT_TITLE & lTimeRange
+    lExpensesSheet.Cells(lRow, COL_AMOUNT).Value2 = -lBalance
+    Call FormatExpenses(lExpensesSheet, lFreeRow)
+    Call SortEntries(lExpensesSheet)
+    
+    
+    Application.ScreenUpdating = True
+    
+    
+
+
+'    Dim lRow As Long
+'    If Abs(lBalance) > 0.004 Then
+'        Call UpdateStatus("OK - " & lTimeRange & " cleared", True, lExpensesSheet)
+'    Else
+'        Call UpdateStatus("Clearing " & lTimeRange & " not possible - balance is already 0.00EUR", False, lExpensesSheet)
+'    End If
 End Sub
 
 Public Sub CreateReport()

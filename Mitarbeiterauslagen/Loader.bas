@@ -42,7 +42,8 @@ Public Sub UpdateAll()
                         lThisRevDate = GetRevDate(lComponent.CodeModule.Lines(1, lComponent.CodeModule.CountOfLines))
                         lGitHubRevDate = GetRevDate(lGitHubCode)
                         If lGitHubRevDate <> lThisRevDate Then
-                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox(IIf(lReadFromLocal, "local repo", "GitHub") & " - different version found - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
+'                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox(IIf(lReadFromLocal, "local repo", "GitHub") & " - different version found - update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
+                            If lDoWeUpdate = WhatDoIKnow Then lDoWeUpdate = IIf(MsgBox(IIf(lReadFromLocal, "local repo", "GitHub") & " - different version found: '" & lGitHubRevDate & "' vs. existing '" & lThisRevDate & "'- update?", vbYesNo, "Auto-Update") = vbYes, YeahGoForIt, NahWhatIHaveIsGood)
                             If lDoWeUpdate = YeahGoForIt Then
                                 lResult = UpdateModule(lComponent, lGitHubCode)
                                 Call LogMessage(lComponent, IIf(LenB(lResult) = 0, IIf(lReadFromLocal, "local repo", "GitHub") & " - successfully updated with rev. " & lGitHubRevDate, "update failed - " & lResult))

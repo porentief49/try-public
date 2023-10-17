@@ -1,3 +1,4 @@
+'2023-10-18 GRR: switch to user temp folder for QR code file
 '2023-10-17 GRR: ready for prime time
 '2023-10-15 GRR: basic features complete
 '2023-10-10 GRR: initial creation
@@ -67,7 +68,7 @@ Public Sub ClearMonth()
 End Sub
 
 Public Sub CreateReport()
-    Const QR_FILE_PATH As String = "C:\temp\QRCode.png"
+    Const QR_FILE As String = "QRCode.png"
     Dim lFileName As String
     Dim lExpensesSheet As Worksheet
     Dim lReportSheet As Worksheet
@@ -75,6 +76,7 @@ Public Sub CreateReport()
     Dim lTimeRange As String
     Dim lQrString As String
     Dim lStatus As String
+    Dim lQrImagePath As String
     On Error GoTo hell
     Set lExpensesSheet = Sheets(SHEET_EXPENSES)
     Set lReportSheet = Sheets(SHEET_REPORT)
@@ -82,16 +84,16 @@ Public Sub CreateReport()
     lTimeRange = lExpensesSheet.Cells(EXP_ROW_TIMERANGE, EXP_COL_TIMERANGE).Value2
     If Abs(lBalance) < 0.004 Then
         Application.ScreenUpdating = False
-        
         lStatus = CopyExpenses(lExpensesSheet, lReportSheet)
         If LenB(lStatus) = 0 Then
             
             'generate QR code
             lQrString = EpcQrString(lReportSheet)
-            Call GenerateQRCode(lQrString, QR_FILE_PATH)
+            lQrImagePath = Environ("TEMP") & "\" & QR_FILE
+            Call GenerateQRCode(lQrString, lQrString)
             
             'place QR code on sheet
-            Call LoadAndDisplayQrCode(QR_FILE_PATH, lReportSheet)
+            Call LoadAndDisplayQrCode(lQrString, lReportSheet)
             
             'export PDF
             lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"

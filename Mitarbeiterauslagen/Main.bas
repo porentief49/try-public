@@ -90,10 +90,10 @@ Public Sub CreateReport()
             'generate QR code
             lQrString = EpcQrString(lReportSheet)
             lQrImagePath = Environ("TEMP") & "\" & QR_FILE
-            Call GenerateQRCode(lQrString, lQrString)
+            Call GenerateQRCode(lQrString, lQrImagePath)
             
             'place QR code on sheet
-            Call LoadAndDisplayQrCode(lQrString, lReportSheet)
+            Call LoadAndDisplayQrCode(lQrImagePath, lReportSheet)
             
             'export PDF
             lFileName = Replace$(Environ("userprofile") & "\Desktop\" & lReportSheet.Cells(1, 1).Value, " ", "_") & ".pdf"

@@ -1,3 +1,4 @@
+'2024-08-01 GRR: fix rounding error for start / end date
 '2023-10-18 GRR: switch to user temp folder for QR code file
 '2023-10-17 GRR: ready for prime time
 '2023-10-15 GRR: basic features complete
@@ -289,7 +290,7 @@ Private Function CopyExpenses(aExpensesSheet As Worksheet, aReportSheet As Works
     lLastRowExpenses = FindFreeRow(aExpensesSheet)
     For i = EXP_ROW_DATA_FIRST To lLastRowExpenses
         lDate = aExpensesSheet.Cells(i, COL_DATE).Value2
-        If lDate > lFrom And lDate < lTo Then
+        If lDate >= lFrom And lDate <= lTo Then
             aReportSheet.Cells(lRowReport, COL_DATE).Value2 = lDate
             aReportSheet.Cells(lRowReport, COL_EXPENSE).Value2 = aExpensesSheet.Cells(i, COL_EXPENSE).Value2
             aReportSheet.Cells(lRowReport, COL_VENDOR).Value2 = aExpensesSheet.Cells(i, COL_VENDOR).Value2
